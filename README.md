@@ -1,2 +1,25 @@
 # authserver
 Authentication Server for any application with the configuration of applications and databases access
+
+Instructions for go to production
+
+a) Front-end: it is necessary to set up .env and .env.local
+
+b) Back-end:
+- see changes in middleware
+- compile: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o goapps ./cmd/api
+
+c) Database:
+pg_dump --no-owner -h localhost -p 5432 -Ujpassano autserver > autserver.sql
+
+It is necessary only to copy the front end, go.apps, go.sum and autserver.sql
+
+On the server:
+./goapps -dsn='host=localhost port=5432 user=jpassano password=jP1732 dbname=autserver sslmode=disable' \
+-jwt-secret='verysecret' -jwt-issuer='learn-code-ca' -jwt-audience='learn-code-ca' -cookie-domain='learn-code.ca'
+
+sudo lsof -i :8080
+
+It is necessary a conf file with autserver program, perhaps installing supervisor or something like this. It seems
+that github with my present apache-Centos server works good.
+
