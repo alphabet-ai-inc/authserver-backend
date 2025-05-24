@@ -19,6 +19,3 @@ On the server:
 -jwt-secret='verysecret' -jwt-issuer='learn-code-ca' -jwt-audience='learn-code-ca' -cookie-domain='learn-code.ca'
 
 sudo lsof -i :8080
-
-It is necessary a conf file with autserver program, perhaps installing supervisor or something like this. It seems
-that github with my present apache-Centos server works good.
