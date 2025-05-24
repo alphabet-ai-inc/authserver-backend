@@ -14,8 +14,5 @@ pg_dump --no-owner -h localhost -p 5432 -U<POSTGRES_USER> autserver > autserver.
 
 It is necessary only to copy the front end, go.apps, go.sum and autserver.sql
 
-On the server:
-./goapps -dsn='host=localhost port=5432 user=<POSTGRES_USER> password=<POSTGRES_PASSWORD> dbname=<DB_NAME> sslmode=disable' \
--jwt-secret='verysecret' -jwt-issuer='learn-code-ca' -jwt-audience='learn-code-ca' -cookie-domain='learn-code.ca'
 
 sudo lsof -i :8080
