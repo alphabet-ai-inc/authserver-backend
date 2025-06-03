@@ -1,3 +1,5 @@
 {
-    "go.toolsEnvVars": {}
+    "go.toolsEnvVars": {
+        "GOENV": "/home/jpassano/projects/go/back-end/.env"
+    }
 }

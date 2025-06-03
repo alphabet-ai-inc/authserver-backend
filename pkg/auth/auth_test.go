@@ -18,9 +18,7 @@ func TestGenerateTokenPair(t *testing.T) {
 		RefreshExpiry: time.Hour,   // 1 hour refresh token expiry
 	}
 
-	var user auth.JWTUser
-
-	user = auth.JWTUser{
+	var user = auth.JWTUser{
 		ID:    1,
 		Email: "admin@example.com",
 	}
@@ -37,21 +35,23 @@ func TestGenerateTokenPair(t *testing.T) {
 
 func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 
-	auth := auth.Auth{
-		Secret: "testSecret",
-		Issuer: "testIssuer",
+	authService := auth.Auth{
+		Issuer:        "testIssuer",
+		Audience:      "testAudience",
+		Secret:        "testSecret",
+		TokenExpiry:   time.Minute, // 1 minute token expiry
+		RefreshExpiry: time.Hour,   // 1 hour refresh token expiry
 	}
 
-	var user auth.JWTUser
-
-	user = auth.JWTUser{
+	var user = auth.JWTUser{
 		ID:    1,
 		Email: "admin@example.com",
 	}
 
 	// Generate a token
-	tokenPairs, _ := auth.GenerateTokenPair(&user)
+	tokenPairs, _ := authService.GenerateTokenPair(&user)
 
+	t.Logf("Generated token pairs: %+v", tokenPairs)
 	// Create a request with the authorization header
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Header.Set("Authorization", "Bearer "+tokenPairs.Token)
@@ -59,7 +59,8 @@ func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 	rr := httptest.NewRecorder() // Response recorder to capture the response
 
 	// Call the method to verify token
-	token, claims, err := auth.GetTokenFromHeaderAndVerify(rr, req)
+	token, claims, err := authService.GetTokenFromHeaderAndVerify(rr, req)
+	t.Logf("token: %+v", token)
 
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
@@ -69,8 +70,8 @@ func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 		t.Fatalf("Expected non-empty token, got %s", token)
 	}
 
-	if claims.Issuer != auth.Issuer {
-		t.Fatalf("Expected issuer to be %s, got %s", auth.Issuer, claims.Issuer)
+	if claims.Issuer != authService.Issuer {
+		t.Fatalf("Expected issuer to be %s, got %s", authService.Issuer, claims.Issuer)
 	}
 }
 
@@ -112,9 +113,11 @@ func TestGetExpiredRefreshCookie(t *testing.T) {
 }
 
 func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
-	auth := &auth.Auth{
-		Secret: "testSecret",
-		Issuer: "testIssuer",
+	authService := &auth.Auth{
+		CookieName:    "refresh_token",
+		CookiePath:    "/",
+		CookieDomain:  "localhost",
+		RefreshExpiry: time.Hour,
 	}
 
 	req := httptest.NewRequest("GET", "/", nil)
@@ -123,7 +126,7 @@ func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	// Call the method to verify token
-	_, _, err := auth.GetTokenFromHeaderAndVerify(rr, req)
+	_, _, err := authService.GetTokenFromHeaderAndVerify(rr, req)
 
 	if err == nil || !errors.Is(err, errors.New("invalid auth header")) {
 		t.Fatalf("Expected invalid auth header error, got %v", err)
@@ -131,16 +134,18 @@ func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 }
 
 func TestGetTokenFromHeaderNoAuth(t *testing.T) {
-	auth := &auth.Auth{
-		Secret: "testSecret",
-		Issuer: "testIssuer",
+	authService := &auth.Auth{
+		CookieName:    "refresh_token",
+		CookiePath:    "/",
+		CookieDomain:  "localhost",
+		RefreshExpiry: time.Hour,
 	}
 
 	req := httptest.NewRequest("GET", "/", nil)
 	rr := httptest.NewRecorder()
 
 	// Call the method to verify token
-	_, _, err := auth.GetTokenFromHeaderAndVerify(rr, req)
+	_, _, err := authService.GetTokenFromHeaderAndVerify(rr, req)
 
 	if err == nil || !errors.Is(err, errors.New("no auth header")) {
 		t.Fatalf("Expected no auth header error, got %v", err)

@@ -4,40 +4,71 @@ import (
 	"backend/api"
 	"backend/internal/dbrepo"
 	"backend/pkg/auth"
+	"database/sql"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"time"
+
+	_ "github.com/jackc/pgx/v5/stdlib" // Import the pgx  driver for database/sql
+	"github.com/joho/godotenv"
 )
 
-const port = 8080
+var port int
 
 func main() {
 	// set application config
 	var app api.Application
+	var err error
 
+	// Locate the current directory
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// Construct the path to the .env file
+	envPath := filepath.Join(dir, ".env")
+
+	// Check if the .env file exists
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		log.Println(".env file not found, using default values")
+	} else {
+		log.Println(".env file found, loading environment variables")
+		// Load environment variables from .env file if present
+		err = godotenv.Load(envPath)
+		if err != nil {
+			log.Fatal("Error loading .env file. It is not readable.")
+		}
+	}
 	// read from command line
-	flag.StringVar(&app.DSN, "dsn", "host=localhost port=5432 user=jpassano password=jP1732 dbname=autserver sslmode=disable timezone=UTC connect_timeout=5", "Postgres connection string")
-	flag.StringVar(&app.JWTSecret, "jwt-secret", "verysecret", "signing secret")
+	app.DSN = os.Getenv("DATABASE_URL")
+	app.JWTSecret = os.Getenv("JWT_SECRET")
+
+	// Set default values for the application configuration
 	flag.StringVar(&app.JWTIssuer, "jwt-issuer", "example.com", "signing issuer")
 	flag.StringVar(&app.JWTAudience, "jwt-audience", "example.com", "signing audience")
 	flag.StringVar(&app.CookieDomain, "cookie-domain", "localhost", "cookie domain")
 	flag.StringVar(&app.Domain, "domain", "example.com", "domain")
+	flag.IntVar(&port, "port", 8080, "API server port")
 
 	flag.Parse()
 	// Initialize the database connection
-	repo := &dbrepo.PostgresDBRepo{}
-	app.DB = repo
-
-	var err error
-	db, err := app.DB.ConnectToDB(app.DSN)
+	if app.DSN == "" {
+		log.Fatal("DSN environment variable is not set")
+	}
+	if app.JWTSecret == "" {
+		log.Fatal("JWT_SECRET environment variable is not set")
+	}
+	db, err := sql.Open("pgx", app.DSN)
 	if err != nil {
 		log.Fatalf("Failed to initialize the database: %v", err)
 	}
 
 	// Test the database connection
-	if err := db.Ping(); err != nil {
+	if err = db.Ping(); err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
 	log.Println("Connected to the database")

@@ -118,7 +118,7 @@ func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Reques
 	if authHeader == "" {
 		return "", nil, errors.New("no auth header")
 	}
-
+	fmt.Printf("Authorization: %v", authHeader)
 	//split the header on spaces
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 {
