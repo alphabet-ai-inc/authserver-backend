@@ -5,7 +5,7 @@ import "net/http"
 func (app *Application) EnableCORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
-		// w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 		// for production, needed to change localhost here and move the following line
 		// w.Header().Set("Access-Control-Allow-Credentials", "true")
 		// deleting it from OPTIONS.
