@@ -1,5 +1,5 @@
 services:
-  backend:
+  authserver-backend:
     build:
       context: .
       dockerfile: Dockerfile
@@ -41,4 +41,4 @@ services:
 
 networks:
   authserver-network:
-    driver: bridge
+    external: true
