@@ -1,8 +1,6 @@
-package api_test
+package api
 
 import (
-	"backend/api"
-	"backend/internal/repository"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -20,20 +18,16 @@ import (
 // 	return m.GetTokenFromHeaderAndVerifyFunc(w, r)
 // }
 
-// type mockapplication struct {
+// type mockAutserverapp struct {
 // 	auth AuthInterface // Use the Auth interface defined earlier
 // }
 
-// func (m *mockapplication) authRequired(nextHandler http.HandlerFunc) any {
+// func (m *mockAutserverapp) authRequired(nextHandler http.HandlerFunc) any {
 // 	panic("unimplemented")
 // }
 
 // Test for CORS Middleware
 func TestEnableCORS(t *testing.T) {
-	mockDB := new(repository.MockDBRepo)
-	app := api.Application{
-		DB: mockDB.DatabaseRepo,
-	}
 	// Create a mock HTTP handler
 	mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -74,7 +68,7 @@ func TestEnableCORS(t *testing.T) {
 // 		},
 // 	}
 
-// 	app := &mockapplication{
+// 	app := &mockAutserverapp{
 // 		auth: mockAuth, // Use the mock auth
 // 	}
 

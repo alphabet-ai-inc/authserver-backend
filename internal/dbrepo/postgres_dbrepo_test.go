@@ -1,170 +1,216 @@
-package dbrepo_test
+package dbrepo
 
 import (
-	"backend/internal/dbrepo"
 	"backend/internal/models"
+	"errors"
 	"regexp"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/stretchr/testify/assert"
 )
 
-// Initialize sqlmock
-var db, mock, err = sqlmock.New()
+func setupMockDB(t *testing.T) (*PostgresDBRepo, sqlmock.Sqlmock, func()) {
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatalf("failed to open sqlmock database: %s", err)
+	}
+	repo := &PostgresDBRepo{DB: db}
+	return repo, mock, func() { db.Close() }
+}
 
 func TestAllApps(t *testing.T) {
-	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
-	}
-	defer db.Close()
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
+	rows := sqlmock.NewRows([]string{
+		"id", "name", "release", "path", "init", "web", "title", "created", "updated",
+	}).AddRow(
+		1, "App1", "v1.0", "/app1", "./app1.sh", "http://app1.example.com", "Title1", 16000000, 16000000,
+	).AddRow(
+		2, "App2", "v2.0", "/app2", "./app2.sh", "http://app2.example.com", "Title2", 16000000, 16000000,
+	)
 
-	// Define expected database rows
-	rows := sqlmock.NewRows([]string{"id", "name", "release", "path", "init", "web", "title", "created", "updated"}).
-		AddRow(1, "AppName", "1.0", "/path/to/app", true, true, "App Title", 0, 0)
-
-	// Set up expectations
-	mock.ExpectQuery("select id, name, release, path, init, web, title, created, updated from apps").
-		WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`
+		select 
+			id,
+			name,
+			release,
+			path,
+			init,
+			web,
+			title,
+			created,
+			updated
+		from
+			apps
+		order by
+			name
+	`)).WillReturnRows(rows)
 
 	apps, err := repo.AllApps()
-	assert.Nil(t, err)
-	assert.Len(t, apps, 1)
-	assert.Equal(t, "AppName", apps[0].Name)
-
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
-}
-func TestThisApp(t *testing.T) {
 	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+	if len(apps) != 2 {
+		t.Errorf("expected 2 apps, got %d", len(apps))
+	}
+}
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
+func TestThisApp(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	// Define expected database rows
-	rows := sqlmock.NewRows([]string{"id", "name", "release", "path", "init", "web", "title", "created", "updated"}).
-		AddRow(1, "AppName", "1.0", "/path/to/app", true, true, "App Title", 0, 0)
+	now := 160000000 // Simulated timestamp for testing
+	row := sqlmock.NewRows([]string{
+		"id", "name", "release", "path", "init", "web", "title", "created", "updated",
+	}).AddRow(
+		1, "App1", "v1.0", "/app1", "./app1.sh", "http://app1.example.com", "Title1", now, now,
+	)
 
-	// Set up expectations
-	mock.ExpectQuery(regexp.QuoteMeta("select id, name, release, path, init, web, title, created, updated from apps where id = $1")).
-		WithArgs(1).
-		WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`
+	select 
+		id,
+		name,
+		release,
+		path,
+		init,
+		web,
+		title,
+		created,
+		updated
+	from
+		apps
+	where id = $1
+`)).WithArgs(1).WillReturnRows(row)
 
 	app, err := repo.ThisApp(1)
-	assert.Nil(t, err)
-	if assert.NotNil(t, app) {
-		assert.Equal(t, "AppName", app.Name)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
+	if app.ID != 1 || app.Name != "App1" {
+		t.Errorf("unexpected app data: %+v", app)
+	}
 }
 
 func TestThisAppForEdit(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	now := 160000000 // Simulated timestamp for testing
+	row := sqlmock.NewRows([]string{
+		"id", "name", "release", "path", "init", "web", "title", "created", "updated",
+	}).AddRow(
+		2, "App2", "v1.0", "/app2", "./app2.sh", "http://app2.example.com", "Title1", now, now,
+	)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`
+	select
+		id,
+		name,
+		release,
+		path,
+		init,
+		web,
+		title,
+		created,
+		updated
+	from
+		apps
+	where id = $1
+`)).WithArgs(2).WillReturnRows(row)
+
+	app, err := repo.ThisAppForEdit(2)
 	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
-
-	repo := dbrepo.PostgresDBRepo{DB: db}
-
-	// Define expected database rows
-	rows := sqlmock.NewRows([]string{"id", "name", "release", "path", "init", "web", "title", "created", "updated"}).
-		AddRow(1, "AppName", "1.0", "/path/to/app", true, true, "App Title", 0, 0)
-
-	// Set up expectationsinternal
-	mock.ExpectQuery(regexp.QuoteMeta("select id, name, release, path, init, web, title, created, updated from apps where id = $1")).
-		WithArgs(1).
-		WillReturnRows(rows)
-
-	editedApp, err := repo.ThisAppForEdit(1)
-	assert.Nil(t, err)
-	if assert.NotNil(t, editedApp) {
-		assert.Equal(t, "AppName", editedApp.Name)
+	if app.ID != 2 || app.Name != "App2" {
+		t.Errorf("unexpected app data: %+v", app)
 	}
-
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
 }
+
 func TestGetUserByEmail(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	now := 160000000 // Simulated timestamp for testing
+	row := sqlmock.NewRows([]string{
+		"id", "username", "password", "code", "active", "last_login", "last_session", "blocked",
+		"tries", "last_try", "email", "profile_id", "group_id", "dbsauth_id", "activation_time",
+		"last_action", "last_app", "last_db", "lan", "company_id", "created", "updated",
+	}).AddRow(
+		1, "user1", "pass", "code", true, now, now, false,
+		0, now, "user1@example.com", 1, 1, 1, now,
+		now, 1, 1, "en", 1, now, now,
+	)
+
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, username, password, code, active, last_login, last_session, blocked,
+	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action,
+	last_app, last_db, lan, company_id, created, updated from users where email =$1`)).
+		WithArgs("user1@example.com").WillReturnRows(row)
+
+	user, err := repo.GetUserByEmail("user1@example.com")
 	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
-
-	repo := dbrepo.PostgresDBRepo{DB: db}
-
-	// Define expected database rows
-	rows := sqlmock.NewRows([]string{"id", "username", "password", "code", "active", "last_login", "last_session", "blocked", "tries", "last_try", "email", "profile_id", "group_id", "dbsauth_id", "activation_time", "last_action", "last_app", "last_db", "lan", "company_id", "created", "updated"}).
-		AddRow(1, "User Name", "verysecret", "0", true, 0, "0", false, 0, 0, "admin@example.com", 0, 0, 0, 0, "0", 0, 0, "es", 0, 0, 0)
-
-	// Set up expectations
-	mock.ExpectQuery(regexp.QuoteMeta("select id, username, password, code, active, last_login, last_session, blocked, tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, last_app, last_db, lan, company_id, created, updated from users where email =$1")).
-		WithArgs("admin@example.com").
-		WillReturnRows(rows)
-
-	user, err := repo.GetUserByEmail("admin@example.com")
-	assert.Nil(t, err)
-	assert.Equal(t, 1, user.ID)
-	// assert.Equal(t, true, user)
-
-	// Verify that all expectations were met
-	// err = mock.ExpectationsWereMet()
-	// assert.Nil(t, err)
+	if user.Email != "user1@example.com" {
+		t.Errorf("unexpected user data: %+v", user)
+	}
 }
-func TestGetUserById(t *testing.T) {
-	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
+
+func TestGetUserByEmail_EmptyEmail(t *testing.T) {
+	repo, _, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	_, err := repo.GetUserByEmail("")
+	if err == nil {
+		t.Error("expected error for empty email, got nil")
 	}
-	defer db.Close()
+}
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
+func TestGetUserByID(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	// Define expected database rows
-	rows := sqlmock.NewRows([]string{"id", "username", "password", "code", "active", "last_login", "last_session", "blocked", "tries", "last_try", "email", "profile_id", "group_id", "dbsauth_id", "activation_time", "last_action", "last_app", "last_db", "lan", "company_id", "created", "updated"}).
-		AddRow(1, "User Name", "verysecret", "0", true, 0, "0", false, 0, 0, "admin@example.com", 0, 0, 0, 0, "0", 0, 0, "es", 0, 0, 0)
+	now := 160000000 // Simulated timestamp for testing
+	row := sqlmock.NewRows([]string{
+		"id", "username", "password", "code", "active", "last_login", "last_session", "blocked",
+		"tries", "last_try", "email", "profile_id", "group_id", "dbsauth_id", "activation_time",
+		"last_action", "last_app", "last_db", "lan", "company_id", "created", "updated",
+	}).AddRow(
+		2, "user2", "pass2", "code2", false, now, now, true,
+		1, now, "user2@example.com", 2, 2, 2, now,
+		now, 2, 2, "es", 2, now, now,
+	)
 
-	// Set up expectations
-	mock.ExpectQuery(regexp.QuoteMeta("select id, username, password, code, active, last_login, last_session, blocked, tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, last_app, last_db, lan, company_id, created, updated from users where id =$1")).
-		WithArgs(1).
-		WillReturnRows(rows)
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, username, password, code, active, last_login, last_session, blocked, 
+	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, 
+	last_app, last_db, lan, company_id, created, updated from users where id =$1`)).
+		WithArgs(2).WillReturnRows(row)
 
-	user, err := repo.GetUserByID(1)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, user.ID)
-
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
+	user, err := repo.GetUserByID(2)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if user.ID != 2 || user.UserName != "user2" {
+		t.Errorf("unexpected user data: %+v", user)
+	}
 }
 
 func TestInsertApp(t *testing.T) {
-	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
-	}
-	defer db.Close()
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
-
-	app := models.NewApp{
-		Name:    "AppName",
-		Release: "1.0",
-		Path:    "/path/to/app",
-		Init:    "init.sh",
-		Web:     "http://testapp.com",
-		Title:   "App Title",
-		Created: 0,
-		Updated: 0,
+	newApp := models.NewApp{
+		Name:    "App3",
+		Release: "v3.0",
+		Path:    "/app3",
+		Init:    "./init.sh",
+		Web:     "http://app3.example.com",
+		Title:   "Title3",
+		Created: 160000000,
+		Updated: 160000000,
 	}
 
-	// Set up expectations
 	mock.ExpectQuery(regexp.QuoteMeta(`
 	insert into apps( 
 		name,
@@ -179,66 +225,125 @@ func TestInsertApp(t *testing.T) {
 		$1, $2, $3, $4, $5, $6, $7, $8
 	)
 	returning id, 1 
-	`)).
-		WithArgs(app.Name, app.Release, app.Path, app.Init, app.Web, app.Title, app.Created, app.Updated).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	`)).WithArgs(
+		&newApp.Name,
+		&newApp.Release,
+		&newApp.Path,
+		&newApp.Init,
+		&newApp.Web,
+		&newApp.Title,
+		&newApp.Created,
+		&newApp.Updated,
+	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
 
-	id, err := repo.InsertApp(app)
-	assert.Nil(t, err)
-	assert.Equal(t, 1, id)
-
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
+	id, err := repo.InsertApp(newApp)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if id != 3 {
+		t.Errorf("expected id 3, got %d", id)
+	}
 }
 
 func TestUpdateApp(t *testing.T) {
-	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
-	}
-	defer db.Close()
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
-
+	// Simulated app data for update
 	app := models.ThisApp{
-		Name:    "AppName",
-		Release: "1.0",
-		Path:    "/path/to/app",
-		Init:    "init.sh",
-		Web:     "http://testapp.com",
-		Title:   "App Title",
-		Created: 0,
-		Updated: 0,
+		ID: 1,
+		NewApp: models.NewApp{
+			Name:    "App1",
+			Release: "v1.1",
+			Path:    "/app1",
+			Init:    "./updated_init.sh",
+			Web:     "http://updated-app1.example.com",
+			Title:   "Title1",
+			Created: 160000000,
+			Updated: 160000000,
+		},
 	}
 
-	// Set up expectations
-	mock.ExpectQuery(regexp.QuoteMeta(`Update apps set name=$2, release=$3, path=$4, init=$5, web=$6, title=$7, created=$8, updated=$9 where id = $1`)).
-		WithArgs(1, app.Name, app.Release, app.Path, app.Init, app.Web, app.Title, app.Created, app.Updated).
-		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(1))
+	mock.ExpectExec(regexp.QuoteMeta(`update apps set name=$2, release=$3, path=$4, init=$5, web=$6, title=$7, 
+		created=$8, updated=$9
+		where id = $1`)).
+		WithArgs(
+			app.ID,
+			app.Name,
+			app.Release,
+			app.Path,
+			app.Init,
+			app.Web,
+			app.Title,
+			app.Created,
+			app.Updated,
+		).
+		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	_ = repo.UpdateApp(app)
-
-	// Verify that all expectations were met
-	_ = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
-}
-func TestDeleteApp(t *testing.T) {
+	err := repo.UpdateApp(app)
 	if err != nil {
-		t.Fatalf("failed to open a stub database connection: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
-	defer db.Close()
+}
 
-	repo := dbrepo.PostgresDBRepo{DB: db}
+func TestDeleteApp(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
 
-	// Set up expectations
-	mock.ExpectExec(regexp.QuoteMeta("delete from apps where id = $1")).
+	mock.ExpectExec(regexp.QuoteMeta(`delete from apps where id = $1`)).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err = repo.DeleteApp(1)
-	assert.Nil(t, err)
+	err := repo.DeleteApp(1)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
 
-	// Verify that all expectations were met
-	err = mock.ExpectationsWereMet()
-	assert.Nil(t, err)
+func TestAllApps_QueryError(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	mock.ExpectQuery("select(.|\\s)*from\\s+apps").WillReturnError(errors.New("query error"))
+
+	_, err := repo.AllApps()
+	if err == nil {
+		t.Error("expected error, got nil")
+	}
+}
+
+func TestThisApp_ScanError(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	row := sqlmock.NewRows([]string{
+		"id", "name", "release", "path", "init", "web", "title", "created", "updated",
+	}).AddRow(
+		"bad_id", "App1", "v1.0", "/app1", "./scan.sh", "http://error.example.com", "Title1", 160000000, 160000000,
+	)
+
+	mock.ExpectQuery("select(.|\\s)*from\\s+apps(.|\\s)*where id = \\$1").
+		WithArgs(1).WillReturnRows(row)
+
+	_, err := repo.ThisApp(1)
+	if err == nil {
+		t.Error("expected scan error, got nil")
+	}
+}
+
+func TestGetUserByID_NotFound(t *testing.T) {
+	repo, mock, closeFn := setupMockDB(t)
+	defer closeFn()
+
+	mock.ExpectQuery("select(.|\\s)*from users where id = \\$1").
+		WithArgs(99).WillReturnRows(sqlmock.NewRows([]string{
+		"id", "username", "password", "code", "active", "last_login", "last_session", "blocked",
+		"tries", "last_try", "email", "profile_id", "group_id", "dbsauth_id", "activation_time",
+		"last_action", "last_app", "last_db", "lan", "company_id", "created", "updated",
+	}))
+
+	_, err := repo.GetUserByID(99)
+	if err == nil {
+		t.Error("expected error for not found, got nil")
+	}
 }

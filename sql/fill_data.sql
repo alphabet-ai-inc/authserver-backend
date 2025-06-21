@@ -61,6 +61,7 @@ INSERT INTO users(username, password, code, active, last_login, last_session, bl
 update users set email='admin@example.com' where id=1;
 
 
-update users set password='$2a$14$wVsaPvJnJJsomWArouWCtusem6S/.Gauq/GjOIEHpyh2DAMmso1wy' where id=1;
-
+update users set password='$2a$10$5z20bnzXmir2Tkx3R5tlkufgqkmmZHzuAWni80LVAy.ch.L9lkBvG' where id=1;
+update users set password='$2a$10$O0m5UkQUgFrKfhJhlvCYGe3z1cQv.i1Rb04f0MKFYJyQA4Ymju6wu' where id=2;
+update users set password='$2a$10$tO.JMVcRgEktbTpARXNz1enaTHx2A1JfaWkbxT/oz/kkKFpmEVHrS' where id=3;
 

@@ -1,13 +1,12 @@
 package api
 
 import (
+	"backend/auth"
+	"backend/internal/dbrepo"
 	"backend/internal/models"
-	"backend/internal/repository"
 	"backend/internal/utils"
-	"backend/pkg/auth"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -17,11 +16,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-type Application struct {
+type Autserverapp struct {
 	DSN          string
 	Domain       string
-	DB           repository.DatabaseRepo
-	CheckPasswd  models.PassMatch
+	DB           dbrepo.DatabaseRepo
 	User         models.User
 	Auth         auth.Auth
 	JWTSecret    string
@@ -30,7 +28,7 @@ type Application struct {
 	CookieDomain string
 }
 
-func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) Home(w http.ResponseWriter, r *http.Request) {
 
 	var payload = struct {
 		Status  string `json:"status"`
@@ -45,7 +43,7 @@ func (app *Application) Home(w http.ResponseWriter, r *http.Request) {
 	_ = utils.JSONResponse.WriteJSON(utils.JSONResponse{}, w, http.StatusOK, payload)
 }
 
-func (app *Application) Apps(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) Apps(w http.ResponseWriter, r *http.Request) {
 
 	apps, err := app.DB.AllApps()
 	if err != nil {
@@ -59,119 +57,12 @@ func (app *Application) Apps(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "Autserverapp/json")
 	json.NewEncoder(w).Encode(apps)
 
 }
 
-func (app *Application) Authenticate(w http.ResponseWriter, r *http.Request) {
-	// read json payload
-	var requestPayload struct {
-		ID       string `json:"id"`
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
-	err := json.NewDecoder(r.Body).Decode(&requestPayload)
-	if err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-	// validate user against database
-	log.Println("Call to GetUserByEmail", requestPayload.Email)
-
-	user, err := app.DB.GetUserByEmail(requestPayload.Email)
-
-	log.Printf("user: %v", user)
-
-	if err != nil {
-		utils.JSONResponse{}.ErrorJSON(w, errors.New("user not found or database error"), http.StatusBadRequest)
-		return
-	}
-	// Assign the retrieved user to app.User
-
-	// app.User = user
-
-	//check password
-	valid, err := app.CheckPasswd.PasswordMatches(requestPayload.Password)
-
-	if err != nil || !valid {
-		utils.JSONResponse{}.ErrorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
-		// utils.JSONResponse{}.ErrorJSON(w, err, http.StatusBadRequest)
-		// utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, "error en passwordmatches")
-		return
-	}
-
-	// create a jwt user
-	u := auth.JWTUser{
-		ID:    user.ID,
-		Email: user.Email,
-	}
-
-	//generate tokens
-	tokens, err := app.Auth.GenerateTokenPair(&u)
-
-	if err != nil {
-		utils.JSONResponse{}.ErrorJSON(w, err, http.StatusInternalServerError)
-		return
-	}
-
-	refreshCookie := app.Auth.GetRefreshCookie(tokens.RefreshToken)
-	http.SetCookie(w, refreshCookie)
-
-	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, tokens)
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(tokens)
-
-}
-
-func (app *Application) RefreshToken(w http.ResponseWriter, r *http.Request) {
-	for _, cookie := range r.Cookies() {
-		if cookie.Name == app.Auth.CookieName {
-			claims := &auth.Claims{}
-			refreshToken := cookie.Value
-
-			// parse the token to get the claims
-			_, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (any, error) {
-				return []byte(app.Auth.JWTSecret), nil
-			})
-
-			if err != nil {
-				utils.JSONResponse{}.ErrorJSON(w, err, http.StatusUnauthorized)
-				return
-			}
-
-			// get the user id from the token claims
-
-			ID := claims.UserID
-			user, err := app.DB.GetUserByID(ID)
-			if err != nil {
-				http.Error(w, "Unknown user", http.StatusUnauthorized)
-				return
-			}
-			u := auth.JWTUser{
-				ID:    user.ID,
-				Email: user.Email,
-			}
-
-			tokenPairs, err := app.Auth.GenerateTokenPair(&u)
-			if err != nil {
-				utils.JSONResponse{}.ErrorJSON(w, errors.New("error generating tokens"), http.StatusUnauthorized)
-				return
-			}
-			http.SetCookie(w, app.Auth.GetRefreshCookie(tokenPairs.RefreshToken))
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(tokenPairs)
-			return
-		}
-	}
-	utils.JSONResponse{}.ErrorJSON(w, errors.New("no more cookies"), http.StatusUnauthorized)
-}
-
-func (app *Application) Logout(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, app.Auth.GetExpiredRefreshCookie())
-	w.WriteHeader(http.StatusAccepted)
-}
-func (app *Application) AppsCatalogue(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) AppsCatalogue(w http.ResponseWriter, r *http.Request) {
 
 	apps, err := app.DB.AllApps()
 	if err != nil {
@@ -182,7 +73,7 @@ func (app *Application) AppsCatalogue(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (app *Application) GetApp(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) GetApp(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	appID, err := strconv.Atoi(id)
@@ -200,7 +91,7 @@ func (app *Application) GetApp(w http.ResponseWriter, r *http.Request) {
 	_ = utils.JSONResponse{}.WriteJSON(w, http.StatusOK, thisapp)
 }
 
-func (app *Application) ThisApp(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) ThisApp(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 	// id := chi.URLParam(r, "id")
 
@@ -220,7 +111,7 @@ func (app *Application) ThisApp(w http.ResponseWriter, r *http.Request) {
 	_ = utils.JSONResponse{}.WriteJSON(w, http.StatusOK, thisapp)
 }
 
-func (app *Application) ThisAppForEdit(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) ThisAppForEdit(w http.ResponseWriter, r *http.Request) {
 	id := mux.Vars(r)["id"]
 
 	appID, err := strconv.Atoi(id)
@@ -238,7 +129,7 @@ func (app *Application) ThisAppForEdit(w http.ResponseWriter, r *http.Request) {
 	_ = utils.JSONResponse{}.WriteJSON(w, http.StatusOK, thisapp)
 }
 
-func (app *Application) InsertApp(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) InsertApp(w http.ResponseWriter, r *http.Request) {
 	var thisapp models.ThisApp
 
 	err := utils.JSONResponse{}.ReadJSON(w, r, &thisapp)
@@ -269,7 +160,7 @@ func (app *Application) InsertApp(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, resp)
 }
-func (app *Application) UpdateApp(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	var payload models.ThisApp
 
 	err := utils.JSONResponse{}.ReadJSON(w, r, &payload)
@@ -310,7 +201,7 @@ func (app *Application) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, resp)
 }
 
-func (app *Application) DeleteApp(w http.ResponseWriter, r *http.Request) {
+func (app *Autserverapp) DeleteApp(w http.ResponseWriter, r *http.Request) {
 
 	// id := chi.URLParam(r, "id")
 	id := mux.Vars(r)["id"]
@@ -332,4 +223,104 @@ func (app *Application) DeleteApp(w http.ResponseWriter, r *http.Request) {
 		Message: "app deleted",
 	}
 	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, resp)
+}
+func (app *Autserverapp) Authenticate(w http.ResponseWriter, r *http.Request) {
+	var requestPayload models.User
+
+	err := json.NewDecoder(r.Body).Decode(&requestPayload)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+
+	// validate user against database
+	user, err := app.DB.GetUserByEmail(requestPayload.Email)
+
+	if err != nil {
+		utils.JSONResponse{}.ErrorJSON(w, errors.New("user not found or database error"), http.StatusBadRequest)
+		return
+	}
+	//check password
+	valid, err := app.User.PasswordMatches(requestPayload.Password, user.Password)
+	if err != nil {
+		utils.JSONResponse{}.ErrorJSON(w, err, http.StatusInternalServerError)
+		return
+	} else if !valid {
+		utils.JSONResponse{}.ErrorJSON(w, errors.New("invalid password"), http.StatusUnauthorized)
+		return
+	}
+
+	// create a jwt user
+	u := auth.JWTUser{
+		ID:    user.ID,
+		Email: user.Email,
+	}
+
+	//generate tokens
+	tokens, err := app.Auth.GenerateTokenPair(&u)
+
+	if err != nil {
+		utils.JSONResponse{}.ErrorJSON(w, err, http.StatusInternalServerError)
+		return
+	}
+
+	refreshCookie := app.Auth.GetRefreshCookie(tokens.RefreshToken)
+	http.SetCookie(w, refreshCookie)
+
+	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, tokens)
+	w.Header().Set("Content-Type", "Autserverapp/json")
+	json.NewEncoder(w).Encode(tokens)
+
+}
+
+func (app *Autserverapp) RefreshToken(w http.ResponseWriter, r *http.Request) {
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == app.Auth.CookieName {
+			claims := &auth.Claims{}
+			refreshToken := cookie.Value
+			// check if the token is empty
+			if refreshToken == "" {
+				utils.JSONResponse{}.ErrorJSON(w, errors.New("no refresh token found"), http.StatusUnauthorized)
+				return
+			}
+			// parse the token to get the claims
+			_, err := jwt.ParseWithClaims(refreshToken, claims, func(token *jwt.Token) (any, error) {
+				return []byte(app.JWTSecret), nil
+			})
+
+			if err != nil {
+				utils.JSONResponse{}.ErrorJSON(w, errors.New("no secret was found"), http.StatusUnauthorized)
+				return
+			}
+
+			// get the user id from the token claims
+
+			ID := claims.UserID
+			user, err := app.DB.GetUserByID(ID)
+			if err != nil {
+				http.Error(w, "Unknown user", http.StatusUnauthorized)
+				return
+			}
+			u := auth.JWTUser{
+				ID:    user.ID,
+				Email: user.Email,
+			}
+
+			tokenPairs, err := app.Auth.GenerateTokenPair(&u)
+			if err != nil {
+				utils.JSONResponse{}.ErrorJSON(w, errors.New("error generating tokens"), http.StatusUnauthorized)
+				return
+			}
+			http.SetCookie(w, app.Auth.GetRefreshCookie(tokenPairs.RefreshToken))
+			w.Header().Set("Content-Type", "Autserverapp/json")
+			json.NewEncoder(w).Encode(tokenPairs)
+			return
+		}
+	}
+	utils.JSONResponse{}.ErrorJSON(w, errors.New("no more cookies"), http.StatusUnauthorized)
+}
+
+func (app *Autserverapp) Logout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, app.Auth.GetExpiredRefreshCookie())
+	w.WriteHeader(http.StatusAccepted)
 }

@@ -1,5 +1,5 @@
 # authserver
-Authentication Server for any application with the configuration of applications and databases access
+Authentication Server for any application with the configuration of application and databases access
 
 Instructions for go to production
 

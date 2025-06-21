@@ -16,7 +16,7 @@ func TestNewApp(t *testing.T) {
 		Path:    "/test/path",
 		Init:    "init.sh",
 		Web:     "http://testapp.com",
-		Title:   "Test Application",
+		Title:   "Test Autserverapp",
 		Created: 1660000000, // Example timestamp
 		Updated: 1660000001,
 	}
@@ -25,7 +25,7 @@ func TestNewApp(t *testing.T) {
 	data, err := json.Marshal(app)
 	assert.NoError(t, err)
 
-	expectedJSON := `{"id":1,"name":"TestApp","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test Application","created":1660000000,"updated":1660000001}`
+	expectedJSON := `{"id":1,"name":"TestApp","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test Autserverapp","created":1660000000,"updated":1660000001}`
 	assert.JSONEq(t, expectedJSON, string(data))
 
 	// Test deserialization (unmarshal)

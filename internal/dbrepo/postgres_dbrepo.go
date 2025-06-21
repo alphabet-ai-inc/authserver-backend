@@ -172,89 +172,6 @@ func (m *PostgresDBRepo) ThisAppForEdit(id int) (*models.ThisApp, error) {
 	return &thisapp, err
 }
 
-func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
-	// Get user by email
-	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
-	defer cancel()
-
-	query := `select id, username, password, code, active, last_login, last_session, blocked,
-	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action,
-	last_app, last_db, lan, company_id, created, updated from users where email =$1`
-
-	user := new(models.User)
-	row := m.DB.QueryRowContext(ctx, query, email)
-
-	err := row.Scan(
-		user.ID,
-		user.UserName,
-		user.Password,
-		user.Code,
-		user.Active,
-		user.LastLogin,
-		user.LastSession,
-		user.Blocked,
-		user.Tries,
-		user.LastTry,
-		user.Email,
-		user.ProfileId,
-		user.GroupId,
-		user.DbsAuth,
-		user.ActivationTime,
-		user.LastAction,
-		user.LastApp,
-		user.LastDb,
-		user.Lan,
-		user.CompanyId,
-		user.Created,
-		user.Updated,
-	)
-	if err != nil {
-		return nil, err
-	}
-	// return &user, err
-	return user, nil
-}
-func (m *PostgresDBRepo) GetUserByID(id int) (*models.User, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
-
-	defer cancel()
-
-	query := `select id, username, password, code, active, last_login, last_session, blocked, 
-	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, 
-	last_app, last_db, lan, company_id, created, updated from users where id =$1`
-
-	var user models.User
-	row := m.DB.QueryRowContext(ctx, query, id)
-	err := row.Scan(
-		&user.ID,
-		&user.UserName,
-		&user.Password,
-		&user.Code,
-		&user.Active,
-		&user.LastLogin,
-		&user.LastSession,
-		&user.Blocked,
-		&user.Tries,
-		&user.LastTry,
-		&user.Email,
-		&user.ProfileId,
-		&user.GroupId,
-		&user.DbsAuth,
-		&user.ActivationTime,
-		&user.LastAction,
-		&user.LastApp,
-		&user.LastDb,
-		&user.Lan,
-		&user.CompanyId,
-		&user.Created,
-		&user.Updated,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &user, nil
-}
-
 func (m *PostgresDBRepo) InsertApp(newapp models.NewApp) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -339,4 +256,90 @@ func (m *PostgresDBRepo) DeleteApp(id int) error {
 
 	return nil
 
+}
+func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
+	// Get user by email
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	query := `select id, username, password, code, active, last_login, last_session, blocked,
+	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action,
+	last_app, last_db, lan, company_id, created, updated from users where email =$1`
+
+	if email == "" {
+		return nil, fmt.Errorf("email cannot be empty")
+	}
+	var user models.User
+	// user := new(models.User)
+	row := m.DB.QueryRowContext(ctx, query, email)
+
+	err := row.Scan(
+		&user.ID,
+		&user.UserName,
+		&user.Password,
+		&user.Code,
+		&user.Active,
+		&user.LastLogin,
+		&user.LastSession,
+		&user.Blocked,
+		&user.Tries,
+		&user.LastTry,
+		&user.Email,
+		&user.ProfileId,
+		&user.GroupId,
+		&user.DbsAuth,
+		&user.ActivationTime,
+		&user.LastAction,
+		&user.LastApp,
+		&user.LastDb,
+		&user.Lan,
+		&user.CompanyId,
+		&user.Created,
+		&user.Updated,
+	)
+	if err != nil {
+		return nil, err
+	}
+	// return &user, err
+	return &user, nil
+}
+func (m *PostgresDBRepo) GetUserByID(id int) (*models.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+
+	defer cancel()
+
+	query := `select id, username, password, code, active, last_login, last_session, blocked, 
+	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, 
+	last_app, last_db, lan, company_id, created, updated from users where id =$1`
+
+	var user models.User
+	row := m.DB.QueryRowContext(ctx, query, id)
+	err := row.Scan(
+		&user.ID,
+		&user.UserName,
+		&user.Password,
+		&user.Code,
+		&user.Active,
+		&user.LastLogin,
+		&user.LastSession,
+		&user.Blocked,
+		&user.Tries,
+		&user.LastTry,
+		&user.Email,
+		&user.ProfileId,
+		&user.GroupId,
+		&user.DbsAuth,
+		&user.ActivationTime,
+		&user.LastAction,
+		&user.LastApp,
+		&user.LastDb,
+		&user.Lan,
+		&user.CompanyId,
+		&user.Created,
+		&user.Updated,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
 }

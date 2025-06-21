@@ -2,7 +2,7 @@ package api
 
 import "net/http"
 
-func (app *Application) EnableCORS(h http.Handler) http.Handler {
+func (app *Autserverapp) EnableCORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		w.Header().Set("Access-Control-Allow-Credentials", "true")
@@ -21,7 +21,7 @@ func (app *Application) EnableCORS(h http.Handler) http.Handler {
 		}
 	})
 }
-func (app *Application) authRequired(next http.Handler) http.Handler {
+func (app *Autserverapp) authRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _, err := app.Auth.GetTokenFromHeaderAndVerify(w, r)
 		if err != nil {

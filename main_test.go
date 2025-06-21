@@ -12,9 +12,9 @@ import (
 )
 
 func TestHome(t *testing.T) {
-	// Initialize application with necessary data
+	// Initialize Autserverapp with necessary data
 
-	app := api.Application{
+	app := api.Autserverapp{
 		JWTSecret: "testsecret",
 	}
 

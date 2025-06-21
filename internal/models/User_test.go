@@ -18,31 +18,31 @@ func TestPasswordMatches(t *testing.T) {
 	}
 
 	// Test with the correct password
-	match, err := user.PasswordMatches(plaintextPassword)
+	match, err := user.PasswordMatches(plaintextPassword, user.Password)
 	assert.NoError(t, err)
 	assert.True(t, match)
 
 	// Test with an incorrect password
 	incorrectPassword := "wrongpassword"
-	match, err = user.PasswordMatches(incorrectPassword)
+	match, err = user.PasswordMatches(incorrectPassword, user.Password)
 	assert.NoError(t, err)
 	assert.False(t, match)
 
 	// Test with an empty password
-	match, err = user.PasswordMatches("")
+	match, err = user.PasswordMatches("", user.Password)
 	assert.NoError(t, err)
 	assert.False(t, match)
 
 	// Test with a nil or blank password stored in the struct if applicable
 	user.Password = ""
-	match, err = user.PasswordMatches("somepassword")
+	match, err = user.PasswordMatches("somepassword", user.Password)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "hashedSecret too short to be a bcrypted password")
 	assert.False(t, match)
 
 	// Check that bcrypt returns a specific error for an invalid password hash
 	user.Password = "invalidhash" // Set a clearly invalid hash
-	match, err = user.PasswordMatches("mysecretpassword")
+	match, err = user.PasswordMatches("mysecretpassword", user.Password)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "hashedSecret too short to be a bcrypted password")
 	assert.False(t, match)

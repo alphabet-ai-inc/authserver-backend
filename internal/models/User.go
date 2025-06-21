@@ -32,31 +32,26 @@ type User struct {
 	Updated        int64  `json:"updated"`
 }
 
-//	type User struct {
-//		ID       int    `json:"id"`
-//		Email    string `json:"email"`
-//		Password string `json:"password"`
-//	}
 type PassMatch interface {
-	PasswordMatches(plainText string) (bool, error)
+	PasswordMatches(string) (bool, error)
 }
 
-type MockPassMatch struct {
+type MockPWCheck struct {
 	mock.Mock
+	PassMatch
 }
 
-func (m *MockPassMatch) PasswordMatches(plainText string) (bool, error) {
+func (m *MockPWCheck) PasswordMatches(plainText string, uPasswd string) (bool, error) {
 	args := m.Called(plainText)
 	if args.Get(0) == nil {
 		return false, args.Error(1)
 	}
 	return true, args.Error(1)
-	// return args.Bool(0), args.Error(1) user, err := app.DB.GetUserByEmail(requestPayload.Email)
-
 }
 
-func (u *User) PasswordMatches(plainText string) (bool, error) {
-	err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(plainText))
+func (u *User) PasswordMatches(plainText string, uPasswd string) (bool, error) {
+	// Compare the plain text password with the hashed password
+	err := bcrypt.CompareHashAndPassword([]byte(uPasswd), []byte(plainText))
 	if err != nil {
 		switch {
 		case errors.Is(err, bcrypt.ErrMismatchedHashAndPassword):

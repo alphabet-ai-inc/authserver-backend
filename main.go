@@ -2,8 +2,8 @@ package main
 
 import (
 	"backend/api"
+	"backend/auth"
 	"backend/internal/dbrepo"
-	"backend/pkg/auth"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -19,10 +19,10 @@ import (
 
 var port int
 
+var app api.Autserverapp
+
 func main() {
-	// set application config
-	var app api.Application
-	var err error
+	// set Autserverapp config
 
 	// Locate the current directory
 	dir, err := os.Getwd()
@@ -47,7 +47,7 @@ func main() {
 	app.DSN = os.Getenv("DATABASE_URL")
 	app.JWTSecret = os.Getenv("JWT_SECRET")
 
-	// Set default values for the application configuration
+	// Set default values for the Autserverapp configuration
 	flag.StringVar(&app.JWTIssuer, "jwt-issuer", "example.com", "signing issuer")
 	flag.StringVar(&app.JWTAudience, "jwt-audience", "example.com", "signing audience")
 	flag.StringVar(&app.CookieDomain, "cookie-domain", "localhost", "cookie domain")
@@ -77,7 +77,7 @@ func main() {
 	defer db.Close()
 
 	// Assign the database repo to app.DB
-	app.DB = &dbrepo.PostgresDBRepo{DB: db}
+	app.DB = &dbrepo.PostgresDBRepo{}
 
 	app.Auth = auth.Auth{
 		Issuer:        app.JWTIssuer,
@@ -93,7 +93,7 @@ func main() {
 	// Start a web server
 	fmt.Printf("Starting server on port %d\n", port)
 
-	// Set up your application's router/handler
+	// Set up your Autserverapp's router/handler
 	handler := app.Routes()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), handler))

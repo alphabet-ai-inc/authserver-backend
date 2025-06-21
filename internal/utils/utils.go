@@ -25,7 +25,7 @@ func (jsr JSONResponse) WriteJSON(w http.ResponseWriter, status int, data interf
 		}
 	}
 
-	w.Header().Set("Content-Type", "api.Application/json")
+	w.Header().Set("Content-Type", "api.Autserverapp/json")
 	w.WriteHeader((status))
 	_, err = w.Write(out)
 
