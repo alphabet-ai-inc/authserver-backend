@@ -16,6 +16,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Autserverapp holds the application configuration and dependencies
+
 type Autserverapp struct {
 	DSN          string
 	Domain       string

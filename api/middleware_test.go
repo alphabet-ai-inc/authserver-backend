@@ -27,11 +27,14 @@ import (
 // }
 
 // Test for CORS Middleware
+
 func TestEnableCORS(t *testing.T) {
 	// Create a mock HTTP handler
 	mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
+
+	// Define a minimal mock or real app with EnableCORS method for testing
 
 	corsHandler := app.EnableCORS(mockHandler)
 

@@ -21,7 +21,7 @@ import (
 )
 
 // Autserverapp is the main application struct
-var testApp *Autserverapp
+var app Autserverapp
 
 func TestHomeHandler(t *testing.T) {
 
@@ -30,7 +30,7 @@ func TestHomeHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.Home)
+	handler := http.HandlerFunc(app.Home)
 
 	handler.ServeHTTP(rr, req)
 
@@ -68,7 +68,7 @@ func TestAppsHandler(t *testing.T) {
 	req.Header.Set("Content-Type", "Autserverapp/json")
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.Apps)
+	handler := http.HandlerFunc(app.Apps)
 
 	handler.ServeHTTP(rr, req)
 
@@ -104,7 +104,7 @@ func TestAppsCatalogueHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.AppsCatalogue)
+	handler := http.HandlerFunc(app.AppsCatalogue)
 
 	handler.ServeHTTP(rr, req)
 
@@ -136,7 +136,7 @@ func TestGetAppHandler(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.GetApp)
+	handler := http.HandlerFunc(app.GetApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -160,7 +160,7 @@ func TestGetAppHandler_InvalidID(t *testing.T) {
 		t.Fatal(err)
 	}
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.GetApp)
+	handler := http.HandlerFunc(app.GetApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -186,7 +186,7 @@ func TestGetAppHandler_NotFound(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.GetApp)
+	handler := http.HandlerFunc(app.GetApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -211,7 +211,7 @@ func TestThisAppHandler(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.ThisApp)
+	handler := http.HandlerFunc(app.ThisApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -243,7 +243,7 @@ func TestThisAppForEditHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.ThisAppForEdit)
+	handler := http.HandlerFunc(app.ThisAppForEdit)
 
 	handler.ServeHTTP(rr, req)
 
@@ -301,7 +301,7 @@ func TestInsertAppHandler(t *testing.T) {
 	req = mux.SetURLVars(req, map[string]string{"name": newApp.Name})
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.InsertApp)
+	handler := http.HandlerFunc(app.InsertApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -370,7 +370,7 @@ func TestUpdateAppHandler(t *testing.T) {
 	})
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.UpdateApp)
+	handler := http.HandlerFunc(app.UpdateApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -396,7 +396,7 @@ func TestDeleteAppHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.DeleteApp)
+	handler := http.HandlerFunc(app.DeleteApp)
 
 	handler.ServeHTTP(rr, req)
 
@@ -431,7 +431,7 @@ func TestAuthenticateHandler(t *testing.T) {
 	log.Printf("Request: %s", req.Body)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.Authenticate)
+	handler := http.HandlerFunc(app.Authenticate)
 
 	handler.ServeHTTP(rr, req)
 
@@ -467,7 +467,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 	// 	JWTSecret:        "secret",
 	// }
 	// Create a valid refresh token
-	refreshToken, err := testApp.Auth.GenerateRefreshToken(&auth.JWTUser{ID: 1, Email: "email"})
+	refreshToken, err := app.Auth.GenerateRefreshToken(&auth.JWTUser{ID: 1, Email: "email"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 	mockDB.On("GetUserByID", 1).Return(&models.User{ID: 1, Email: "email"}, nil)
 
 	cookie := &http.Cookie{
-		Name:  testApp.Auth.CookieName,
+		Name:  app.Auth.CookieName,
 		Value: refreshToken,
 	}
 	req, err := http.NewRequest(http.MethodPost, "/refresh-token", nil)
@@ -485,7 +485,7 @@ func TestRefreshTokenHandler(t *testing.T) {
 	req.AddCookie(cookie)
 	rr := httptest.NewRecorder()
 
-	handler := http.HandlerFunc(testApp.RefreshToken)
+	handler := http.HandlerFunc(app.RefreshToken)
 
 	handler.ServeHTTP(rr, req)
 
@@ -515,7 +515,7 @@ func TestLogoutHandler(t *testing.T) {
 		Auth auth.Auth
 	}
 	// Mock the Auth interface
-	app := MockAutserver{
+	MockApp := MockAutserver{
 		Auth: mockAuth,
 	}
 
@@ -525,7 +525,7 @@ func TestLogoutHandler(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(testApp.Logout)
+	handler := http.HandlerFunc(app.Logout)
 
 	handler.ServeHTTP(rr, req)
 
@@ -535,6 +535,6 @@ func TestLogoutHandler(t *testing.T) {
 
 	cookies := rr.Result().Cookies()
 	assert.Len(t, cookies, 1)
-	assert.Equal(t, cookies[0].Name, app.Auth.CookieName)
+	assert.Equal(t, cookies[0].Name, MockApp.Auth.CookieName)
 	assert.Equal(t, cookies[0].MaxAge, -1)
 }
