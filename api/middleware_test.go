@@ -29,17 +29,18 @@ import (
 // Test for CORS Middleware
 
 func TestEnableCORS(t *testing.T) {
+	t.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,http://example.com")
+
 	// Create a mock HTTP handler
 	mockHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Define a minimal mock or real app with EnableCORS method for testing
-
 	corsHandler := app.EnableCORS(mockHandler)
 
 	// Test a GET request
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Origin", "http://localhost:3000")
 	recorder := httptest.NewRecorder()
 
 	corsHandler.ServeHTTP(recorder, req)

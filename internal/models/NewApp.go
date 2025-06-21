@@ -3,6 +3,7 @@ package models
 import "fmt"
 
 type NewApp struct {
+	ID      int    `json:"id"`
 	Name    string `json:"name"`
 	Release string `json:"release"`
 	Path    string `json:"path"`
