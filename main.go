@@ -44,7 +44,7 @@ func main() {
 		}
 	}
 	// read from command line
-	app.DSN = os.Getenv("DATABASE_URL")
+	app.DSN = os.Getenv("DSN")
 	app.JWTSecret = os.Getenv("JWT_SECRET")
 
 	// Set default values for the Autserverapp configuration
