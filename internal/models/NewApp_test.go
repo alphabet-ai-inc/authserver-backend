@@ -11,6 +11,7 @@ import (
 func TestNewApp(t *testing.T) {
 	// Create an instance of NewApp
 	app := models.NewApp{
+		ID:      1,
 		Name:    "TestApp",
 		Release: "1.0.0",
 		Path:    "/test/path",

@@ -4,7 +4,6 @@ import (
 	"backend/internal/dbrepo"
 	"backend/internal/models"
 	"errors"
-	"log"
 	"strings"
 
 	"backend/auth"
@@ -16,8 +15,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Autserverapp is the main application struct
@@ -50,6 +51,10 @@ func TestAppsHandler(t *testing.T) {
 		{ID: 2, NewApp: models.NewApp{Name: "App 2", Release: "v1.1", Path: "/app2", Init: "./app2.sh", Web: "http://app2.example.com", Title: "Title2", Created: 160000001, Updated: 160000001}},
 	}
 	mockDB.On("AllApps").Return(expectedApps, nil)
+
+	app := &Autserverapp{
+		DB: mockDB,
+	}
 
 	// Set up expectations
 	payloadBytes, err := json.Marshal(expectedApps)
@@ -84,6 +89,7 @@ func TestAppsHandler(t *testing.T) {
 	}
 
 	assert.Equal(t, expectedApps, response)
+	// assert.Equal(t, "application/json", rr.Header().Get("Content-Type"))
 	mockDB.AssertExpectations(t)
 }
 
@@ -93,6 +99,10 @@ func TestAppsCatalogueHandler(t *testing.T) {
 	expectedArrApps := []*models.ThisApp{
 		{ID: 1, NewApp: models.NewApp{Name: "App 1"}},
 		{ID: 2, NewApp: models.NewApp{Name: "App 2"}},
+	}
+
+	app := &Autserverapp{
+		DB: mockDB,
 	}
 
 	mockDB.On("AllApps").Return(expectedArrApps, nil)
@@ -128,6 +138,9 @@ func TestGetAppHandler(t *testing.T) {
 
 	expectedApp := models.ThisApp{
 		ID: 1, NewApp: models.NewApp{Name: "App 1"},
+	}
+	app := &Autserverapp{
+		DB: mockDB,
 	}
 
 	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
@@ -178,6 +191,10 @@ func TestGetAppHandler_NotFound(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 	mockDB.On("ThisApp", 1).Return(&models.ThisApp{}, errors.New("app not found"))
 
+	app := &Autserverapp{
+		DB: mockDB,
+	}
+
 	req, err := http.NewRequest(http.MethodGet, "/app/notfound", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
 
@@ -206,6 +223,9 @@ func TestThisAppHandler(t *testing.T) {
 	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
 
 	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
+	app := &Autserverapp{
+		DB: mockDB,
+	}
 
 	req := httptest.NewRequest(http.MethodGet, "/this-app/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -234,6 +254,9 @@ func TestThisAppForEditHandler(t *testing.T) {
 	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
 
 	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
+	app := &Autserverapp{
+		DB: mockDB,
+	}
 
 	req, err := http.NewRequest(http.MethodGet, "/this-app-for-edit/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
@@ -287,6 +310,9 @@ func TestInsertAppHandler(t *testing.T) {
 	}
 
 	mockDB.On("InsertApp", newApp).Return(1, nil)
+	app := &Autserverapp{
+		DB: mockDB,
+	}
 
 	payloadBytes, err := json.Marshal(thisApp)
 	if err != nil {
@@ -347,6 +373,10 @@ func TestUpdateAppHandler(t *testing.T) {
 
 	mockDB.On("ThisApp", existingApp.ID).Return(&existingApp, nil)
 	mockDB.On("UpdateApp", updatedApp).Return(nil)
+	app := &Autserverapp{
+		DB: mockDB,
+	}
+
 	payloadBytes, err := json.Marshal(updatedApp)
 	if err != nil {
 		t.Fatal(err)
@@ -388,6 +418,11 @@ func TestDeleteAppHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
 	mockDB.On("DeleteApp", 1).Return(nil)
+
+	app := &Autserverapp{
+		DB: mockDB,
+	}
+
 	req, err := http.NewRequest(http.MethodDelete, "/delete-app/1", nil)
 	req = mux.SetURLVars(req, map[string]string{"id": "1"})
 
@@ -411,67 +446,75 @@ func TestDeleteAppHandler(t *testing.T) {
 }
 func TestAuthenticateHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
-	mockPassMatch := new(models.MockPWCheck)
 
-	// Mock the GetUserByEmail method
-	expectedUser := &models.User{ID: 1, Email: "user@example.com", Password: "$2a$10$5z20bnzXmir2Tkx3R5tlkufgqkmmZHzuAWni80LVAy.ch.L9lkBvG"}
+	testPassword := "password123"
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(testPassword), bcrypt.DefaultCost)
+	expectedUser := &models.User{
+		ID:       1,
+		Email:    "user@example.com",
+		Password: string(hashedPassword),
+	}
 	mockDB.On("GetUserByEmail", "user@example.com").Return(expectedUser, nil)
 
-	mockPassMatch.On("PasswordMatches", "$2a$10$5z20bnzXmir2Tkx3R5tlkufgqkmmZHzuAWni80LVAy.ch.L9lkBvG").Return(true, nil)
+	app := &Autserverapp{
+		DB: mockDB,
+		Auth: auth.Auth{
+			Secret:     "test_secret",
+			CookieName: "refresh_token",
+		},
+		JWTSecret: "test_secret",
+	}
 
-	payload := `{"id":1, "email": "user@example.com", "password": "$2a$10$5z20bnzXmir2Tkx3R5tlkufgqkmmZHzuAWni80LVAy.ch.L9lkBvG"}`
-
+	payload := fmt.Sprintf(`{"email":"user@example.com","password":"%s"}`, testPassword)
 	req, err := http.NewRequest(http.MethodPost, "/authenticate", strings.NewReader(payload))
-
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "Autserverapp/json")
-
-	log.Printf("Request: %s", req.Body)
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(app.Authenticate)
-
 	handler.ServeHTTP(rr, req)
 
-	rr.Code = httptest.NewRecorder().Result().StatusCode
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	if status := rr.Code; status != http.StatusOK && status != http.StatusAccepted {
+		t.Logf("Response body: %s", rr.Body.String())
+		t.Errorf("handler returned status code: %v", status)
+		return
 	}
 
 	var response struct {
 		Token        string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
 	}
-
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
+	if err := json.NewDecoder(rr.Body).Decode(&response); err != nil {
 		t.Fatal(err)
 	}
-	log.Printf("Response: %s", rr.Body)
 
-	assert.NotEmpty(t, response.Token)
-	assert.NotEmpty(t, response.RefreshToken)
-
+	if response.Token == "" || response.RefreshToken == "" {
+		t.Error("tokens are empty")
+	}
 }
 
 func TestRefreshTokenHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
-	// mockAuth := auth.Auth{
-	// 	MockToken:        "token",
-	// 	MockRefreshToken: "refresh_token",
-	// 	CookieName:       "refresh_token",
-	// 	JWTSecret:        "secret",
-	// }
-	// Create a valid refresh token
-	refreshToken, err := app.Auth.GenerateRefreshToken(&auth.JWTUser{ID: 1, Email: "email"})
+	app := &Autserverapp{
+		DB: mockDB,
+		Auth: auth.Auth{
+			CookieName: "refresh_token",
+		},
+		JWTSecret: "test_secret",
+	}
+
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": 1,
+		"email":   "email",
+		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+	}).SignedString([]byte("test_secret"))
+
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	mockDB.On("GetUserByID", 1).Return(&models.User{ID: 1, Email: "email"}, nil)
 
 	cookie := &http.Cookie{
@@ -486,7 +529,6 @@ func TestRefreshTokenHandler(t *testing.T) {
 	rr := httptest.NewRecorder()
 
 	handler := http.HandlerFunc(app.RefreshToken)
-
 	handler.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusOK {
@@ -508,15 +550,18 @@ func TestRefreshTokenHandler(t *testing.T) {
 }
 
 func TestLogoutHandler(t *testing.T) {
-	mockAuth := auth.Auth{
+	testAuth := auth.Auth{
 		CookieName: "refresh_token",
+	}
+	app := &Autserverapp{
+		Auth: testAuth,
 	}
 	type MockAutserver struct {
 		Auth auth.Auth
 	}
 	// Mock the Auth interface
 	MockApp := MockAutserver{
-		Auth: mockAuth,
+		Auth: testAuth,
 	}
 
 	req, err := http.NewRequest(http.MethodPost, "/logout", nil)

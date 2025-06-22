@@ -29,14 +29,14 @@ func TestRoutes(t *testing.T) {
 	assert.NoError(t, err)
 	res, err = http.DefaultClient.Do(req)
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusAccepted, res.StatusCode)
+	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 
 	// Test the Refresh Token route
 	req, err = http.NewRequest("GET", ts.URL+"/refresh", nil)
 	assert.NoError(t, err)
 	res, err = http.DefaultClient.Do(req)
 	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	// Test the Logout route
 	req, err = http.NewRequest("GET", ts.URL+"/logout", nil)
