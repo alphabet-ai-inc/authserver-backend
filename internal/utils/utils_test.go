@@ -26,7 +26,7 @@ func TestWriteJSON(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	println("rr.Body.String() = ", rr.Body.String())
+	// println("rr.Body.String() = ", rr.Body.String())
 }
 
 func TestReadJSON(t *testing.T) {

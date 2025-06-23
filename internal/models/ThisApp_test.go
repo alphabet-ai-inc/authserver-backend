@@ -1,6 +1,7 @@
-package models
+package models_test
 
 import (
+	"backend/internal/models"
 	"encoding/json"
 	"testing"
 
@@ -9,9 +10,9 @@ import (
 
 func TestThisApp(t *testing.T) {
 	// Create an instance of ThisApp
-	app := ThisApp{
+	app := models.ThisApp{
 		ID: 1,
-		NewApp: NewApp{
+		NewApp: models.NewApp{
 			Name:    "Test App",
 			Release: "1.0.0",
 			Path:    "/test/path",
@@ -31,14 +32,14 @@ func TestThisApp(t *testing.T) {
 	assert.JSONEq(t, expectedJSON, string(data))
 
 	// Test deserialization (unmarshal)
-	var appFromJSON ThisApp
+	var appFromJSON models.ThisApp
 	err = json.Unmarshal(data, &appFromJSON)
 	assert.NoError(t, err)
 	assert.Equal(t, app, appFromJSON) // Assert equality between the original and unmarshalled structs
 }
 
 func TestThisApp_Error(t *testing.T) {
-	app := ThisApp{}
+	app := models.ThisApp{}
 
 	// Calling the Error method should panic
 	assert.Panics(t, func() {

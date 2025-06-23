@@ -11,7 +11,6 @@ import (
 func TestNewApp(t *testing.T) {
 	// Create an instance of NewApp
 	app := models.NewApp{
-		ID:      1,
 		Name:    "TestApp",
 		Release: "1.0.0",
 		Path:    "/test/path",
@@ -26,7 +25,7 @@ func TestNewApp(t *testing.T) {
 	data, err := json.Marshal(app)
 	assert.NoError(t, err)
 
-	expectedJSON := `{"id":1,"name":"TestApp","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test Autserverapp","created":1660000000,"updated":1660000001}`
+	expectedJSON := `{"name":"TestApp","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test Autserverapp","created":1660000000,"updated":1660000001}`
 	assert.JSONEq(t, expectedJSON, string(data))
 
 	// Test deserialization (unmarshal)

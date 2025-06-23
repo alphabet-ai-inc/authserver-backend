@@ -1,6 +1,7 @@
-package dbrepo
+package dbrepo_test
 
 import (
+	"backend/internal/dbrepo"
 	"database/sql"
 	"testing"
 
@@ -8,7 +9,7 @@ import (
 )
 
 func TestConnectToDB(t *testing.T) {
-	mockRepo := new(MockDBRepo)
+	mockRepo := dbrepo.MockDBRepo{}
 	dsn := "user=postgres, password=postgres, dbname=postgres, sslmode=disable"
 	// Set up expectations
 	mockRepo.On("ConnectToDB", dsn).Return((*sql.DB)(nil), nil)
@@ -25,7 +26,7 @@ func TestConnectToDB(t *testing.T) {
 }
 
 func TestConnection(t *testing.T) {
-	mockRepo := new(MockDBRepo)
+	mockRepo := dbrepo.MockDBRepo{}
 	// Set up expectations
 	mockRepo.On("Connection").Return((*sql.DB)(nil), nil)
 

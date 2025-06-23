@@ -109,7 +109,7 @@ func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 
 func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error) {
 	// Parece estar mal el siguiente header array. Debería pasarle una autorizacion el cliente con el request
-	w.Header().Add("Vary", "Authorization")
+	w.Header().Add("Authorization", "Bearer "+j.MockToken)
 
 	// get auth header
 	authHeader := r.Header.Get("Authorization")

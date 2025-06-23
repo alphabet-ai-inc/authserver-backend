@@ -24,7 +24,7 @@ type DatabaseRepo interface {
 type MockDBRepo struct {
 	mock.Mock
 	DatabaseRepo
-	Users map[string]models.User
+	Users models.User
 }
 
 func (m *MockDBRepo) ConnectToDB(dsn string) (*sql.DB, error) {
