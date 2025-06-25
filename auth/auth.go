@@ -55,6 +55,7 @@ func (j *Auth) GenerateRefreshToken(user *JWTUser) (string, error) {
 		UserID: user.ID,
 		Email:  user.Email,
 		StandardClaims: jwt.StandardClaims{
+			Issuer:    j.Issuer,
 			ExpiresAt: time.Now().Add(24 * time.Hour).Unix(),
 		},
 	}
@@ -64,19 +65,28 @@ func (j *Auth) GenerateRefreshToken(user *JWTUser) (string, error) {
 }
 
 func (j *Auth) GenerateTokenPair(user *JWTUser) (TokenPairs, error) {
-	accessToken, err := j.GenerateRefreshToken(user)
+	accessClaims := Claims{
+		UserID: user.ID,
+		Email:  user.Email,
+		StandardClaims: jwt.StandardClaims{
+			Issuer:    j.Issuer,
+			ExpiresAt: time.Now().Add(j.TokenExpiry).Unix(), // Используем TokenExpiry
+		},
+	}
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
+	accessTokenString, err := accessToken.SignedString([]byte(j.JWTSecret))
 	if err != nil {
 		return TokenPairs{}, err
 	}
 
-	refreshToken, err := j.GenerateRefreshToken(user)
+	refreshTokenString, err := j.GenerateRefreshToken(user)
 	if err != nil {
 		return TokenPairs{}, err
 	}
 
 	return TokenPairs{
-		Token:        accessToken,
-		RefreshToken: refreshToken,
+		Token:        accessTokenString,
+		RefreshToken: refreshTokenString,
 	}, nil
 }
 
@@ -109,7 +119,7 @@ func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 
 func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error) {
 	// Parece estar mal el siguiente header array. Debería pasarle una autorizacion el cliente con el request
-	w.Header().Add("Authorization", "Bearer "+j.MockToken)
+	// w.Header().Add("Authorization", "Bearer "+j.MockToken)
 
 	// get auth header
 	authHeader := r.Header.Get("Authorization")
@@ -138,9 +148,9 @@ func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Reques
 	// parse the token
 	_, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing metdhod: %v", token.Header["alg"])
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
-		return []byte(j.Secret), nil
+		return []byte(j.JWTSecret), nil
 	})
 
 	if err != nil {

@@ -2,7 +2,6 @@ package auth_test
 
 import (
 	"backend/auth"
-	"errors"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -49,7 +48,10 @@ func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 	}
 
 	// Generate a token
-	tokenPairs, _ := authService.GenerateTokenPair(&user)
+	tokenPairs, err := authService.GenerateTokenPair(&user)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
 
 	t.Logf("Generated token pairs: %+v", tokenPairs)
 	// Create a request with the authorization header
@@ -114,6 +116,10 @@ func TestGetExpiredRefreshCookie(t *testing.T) {
 
 func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 	authService := &auth.Auth{
+		Issuer:        "testIssuer",
+		Audience:      "testAudience",
+		Secret:        "testSecret",
+		JWTSecret:     "testSecret",
 		CookieName:    "refresh_token",
 		CookiePath:    "/",
 		CookieDomain:  "localhost",
@@ -128,13 +134,14 @@ func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 	// Call the method to verify token
 	_, _, err := authService.GetTokenFromHeaderAndVerify(rr, req)
 
-	if err == nil || !errors.Is(err, errors.New("invalid auth header")) {
+	if err == nil || err.Error() != "invalid auth header" {
 		t.Fatalf("Expected invalid auth header error, got %v", err)
 	}
 }
 
 func TestGetTokenFromHeaderNoAuth(t *testing.T) {
 	authService := &auth.Auth{
+		JWTSecret:     "testSecret",
 		CookieName:    "refresh_token",
 		CookiePath:    "/",
 		CookieDomain:  "localhost",
@@ -147,7 +154,7 @@ func TestGetTokenFromHeaderNoAuth(t *testing.T) {
 	// Call the method to verify token
 	_, _, err := authService.GetTokenFromHeaderAndVerify(rr, req)
 
-	if err == nil || !errors.Is(err, errors.New("no auth header")) {
+	if err == nil || err.Error() != "no auth header" {
 		t.Fatalf("Expected no auth header error, got %v", err)
 	}
 }
