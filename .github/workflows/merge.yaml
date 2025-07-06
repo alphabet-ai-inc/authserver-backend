@@ -82,14 +82,14 @@ jobs:
         IFS=',' read -ra SERVERS <<< "${{ secrets.SERVER_IPS }}"
         echo ${{ secrets.SERVER_IPS }}
         for server in "${SERVERS[@]}"; do
-          echo "SSH command: ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@$server"
+          echo "SSH command: ssh -o StrictHostKeyChecking=no root@$server"
         done
 
         for server in "${SERVERS[@]}"; do
           echo "Deploying to server: $server"
           
           # Connect to the server and perform deployment
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@$server << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@$server << 'EOF'
             set -e
             
             # Go to the application directory
@@ -113,10 +113,10 @@ jobs:
           
           # Copy the .env file to the server
           echo "Copying .env file to server: $server"
-          scp -o StrictHostKeyChecking=no .env ${{ secrets.SSH_USER }}@$server:${{ secrets.DEPLOY_PATH }}/.env
+          scp -o StrictHostKeyChecking=no .env root@$server:${{ secrets.DEPLOY_PATH }}/.env
           
           # We execute the deploy command
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@$server << 'EOF'
+          ssh -o StrictHostKeyChecking=no root@$server << 'EOF'
             set -e
             
             cd ${{ secrets.DEPLOY_PATH }}
