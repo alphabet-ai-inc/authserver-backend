@@ -3,8 +3,9 @@ name: Push workflow
 on:
   push:
     branches:
-      # - '**'
-      - non-existent-branch
+      - '**'
+      # FOR TESTING
+      # - non-existent-branch
 
 jobs:
   test:
