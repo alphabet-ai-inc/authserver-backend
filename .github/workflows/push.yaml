@@ -1,9 +1,10 @@
 name: Push workflow
 
-# on:
-#   push:
-#     branches:
-#       - '**'
+on:
+  push:
+    branches:
+      # - '**'
+      - non-existent-branch
 
 jobs:
   test:
