@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - '**'
+      # FOR TESTING
+      # - non-existent-branch
 
 jobs:
   test:
