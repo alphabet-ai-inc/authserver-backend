@@ -55,10 +55,32 @@ jobs:
         
         echo "Generated .env file:"
         cat .env
-    
+
+    - name: Debug SERVER_IPS
+      run: |
+        echo "Server IPs length: ${#SERVER_IPS} characters"
+        echo "Server IPs starts with: ${SERVER_IPS:0:10}..."
+        echo "Number of IPs: $(echo $SERVER_IPS | tr ',' '\n' | wc -l)"
+        if [ "$SERVER_IPS" = "172.234.195.165" ]; then
+          echo "SERVER_IPS matches expected value"
+        else
+          echo "SERVER_IPS does not match expected value, actual: $SERVER_IPS"
+        fi
+      env:
+        SERVER_IPS: ${{ secrets.SERVER_IPS }}
+
+    - name: Debug SERVERS array
+      run: |
+        IFS=',' read -ra SERVERS <<< "${{ secrets.SERVER_IPS }}"
+        echo "Number of servers: ${#SERVERS[@]}"
+        for i in "${!SERVERS[@]}"; do
+          echo "Server[$i]: ${SERVERS[i]}"
+        done
+
     - name: Deploy to servers
       run: |
         IFS=',' read -ra SERVERS <<< "${{ secrets.SERVER_IPS }}"
+        echo ${{ secrets.SERVER_IPS }}
         for server in "${SERVERS[@]}"; do
           echo "SSH command: ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@$server"
         done
