@@ -1,10 +1,9 @@
 package main
 
 import (
-	"backend/api"
-	"backend/auth"
-	"backend/internal/dbrepo"
-	"database/sql"
+	"authserver-backend/api"
+	"authserver-backend/auth"
+	"authserver-backend/internal/dbrepo"
 	"flag"
 	"fmt"
 	"log"
@@ -19,12 +18,9 @@ import (
 
 var port int
 
-var app api.Autserverapp
-
 func main() {
-	// set Autserverapp config
-
 	// Locate the current directory
+	app := api.Autserverapp{}
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -43,11 +39,17 @@ func main() {
 			log.Fatal("Error loading .env file. It is not readable.")
 		}
 	}
-	// read from command line
-	app.DSN = os.Getenv("DSN")
+	app.DSN = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable timezone=UTC connect_timeout=5",
+		os.Getenv("POSTGRES_HOST"),
+		os.Getenv("POSTGRES_EXTERNAL_PORT"),
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_DB"),
+	)
+
 	app.JWTSecret = os.Getenv("JWT_SECRET")
 
-	// Set default values for the Autserverapp configuration
+	// Set default values for the app configuration
 	flag.StringVar(&app.JWTIssuer, "jwt-issuer", "example.com", "signing issuer")
 	flag.StringVar(&app.JWTAudience, "jwt-audience", "example.com", "signing audience")
 	flag.StringVar(&app.CookieDomain, "cookie-domain", "localhost", "cookie domain")
@@ -62,22 +64,29 @@ func main() {
 	if app.JWTSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is not set")
 	}
-	db, err := sql.Open("pgx", app.DSN)
-	if err != nil {
-		log.Fatalf("Failed to initialize the database: %v", err)
-	}
+	log.Println("DSN: " + app.DSN)
 
-	// Test the database connection
-	if err = db.Ping(); err != nil {
+	repo := &dbrepo.PostgresDBRepo{}
+	db, err := repo.ConnectToDB(app.DSN)
+	if err != nil {
 		log.Fatalf("Failed to connect to the database: %v", err)
 	}
+	// Test the database connection
+
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Database not connected: %v", err)
+	}
+
 	log.Println("Connected to the database")
 
 	// Set up the database connection pool
 	defer db.Close()
 
-	// Assign the database repo to app.DB
-	app.DB = &dbrepo.PostgresDBRepo{}
+	// Set the DB field in repo
+	repo.DB = db
+
+	// Assign the initialized repo to app.DB
+	app.DB = repo
 
 	app.Auth = auth.Auth{
 		Issuer:        app.JWTIssuer,
@@ -93,9 +102,8 @@ func main() {
 	// Start a web server
 	fmt.Printf("Starting server on port %d\n", port)
 
-	// Set up your Autserverapp's router/handler
+	// Set up your app's router/handler
 	handler := app.Routes()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), handler))
-
 }

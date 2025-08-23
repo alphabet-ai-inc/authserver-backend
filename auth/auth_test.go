@@ -1,7 +1,7 @@
 package auth_test
 
 import (
-	"backend/auth"
+	"authserver-backend/auth"
 	"net/http/httptest"
 	"testing"
 	"time"

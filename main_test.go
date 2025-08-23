@@ -1,7 +1,7 @@
 package main
 
 import (
-	"backend/api"
+	"authserver-backend/api"
 
 	"net/http"
 	"net/http/httptest"

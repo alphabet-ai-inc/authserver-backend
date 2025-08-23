@@ -1,10 +1,10 @@
 package api
 
 import (
-	"backend/auth"
-	"backend/internal/dbrepo"
-	"backend/internal/models"
-	"backend/internal/utils"
+	"authserver-backend/auth"
+	"authserver-backend/internal/dbrepo"
+	"authserver-backend/internal/models"
+	"authserver-backend/internal/utils"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -54,14 +54,9 @@ func (app *Autserverapp) Apps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = utils.JSONResponse.WriteJSON(utils.JSONResponse{}, w, http.StatusOK, apps)
-	// if err != nil {
-	// 	http.Error(w, "Unable to fetch apps", http.StatusInternalServerError)
-	// 	return
-	// }
 
-	w.Header().Set("Content-Type", "Autserverapp/json")
-	json.NewEncoder(w).Encode(apps)
-
+	// w.Header().Set("Content-Type", "Autserverapp/json")
+	// json.NewEncoder(w).Encode(apps)
 }
 
 func (app *Autserverapp) AppsCatalogue(w http.ResponseWriter, r *http.Request) {
@@ -270,8 +265,6 @@ func (app *Autserverapp) Authenticate(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, refreshCookie)
 
 	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, tokens)
-	w.Header().Set("Content-Type", "Autserverapp/json")
-	json.NewEncoder(w).Encode(tokens)
 
 }
 

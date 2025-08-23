@@ -1,10 +1,12 @@
 package dbrepo
 
 import (
-	"backend/internal/models"
+	"authserver-backend/internal/models"
+	"authserver-backend/logerror"
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	_ "github.com/jackc/pgconn"
@@ -22,7 +24,7 @@ const dbTimeout = time.Second * 3
 func (m *PostgresDBRepo) ConnectToDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
-		return nil, err
+		logerror.LogError(err)
 	}
 
 	return db, err
@@ -257,8 +259,12 @@ func (m *PostgresDBRepo) DeleteApp(id int) error {
 	return nil
 
 }
+
 func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 	// Get user by email
+	if _, err := m.Connection(); err != nil {
+		log.Fatalf("Database not connected: %v", err)
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
 
@@ -269,8 +275,8 @@ func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 	if email == "" {
 		return nil, fmt.Errorf("email cannot be empty")
 	}
+
 	var user models.User
-	// user := new(models.User)
 	row := m.DB.QueryRowContext(ctx, query, email)
 
 	err := row.Scan(
@@ -297,8 +303,11 @@ func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 		&user.Created,
 		&user.Updated,
 	)
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("no user found with email: %s", email)
+	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan error: %w", err)
 	}
 	// return &user, err
 	return &user, nil

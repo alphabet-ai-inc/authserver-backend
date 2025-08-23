@@ -1,12 +1,12 @@
 package api
 
 import (
-	"backend/internal/dbrepo"
-	"backend/internal/models"
+	"authserver-backend/internal/dbrepo"
+	"authserver-backend/internal/models"
 	"errors"
 	"strings"
 
-	"backend/auth"
+	"authserver-backend/auth"
 	"bytes"
 	"encoding/json"
 	"fmt"

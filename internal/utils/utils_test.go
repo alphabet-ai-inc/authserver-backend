@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"backend/internal/utils"
+	"authserver-backend/internal/utils"
 
 	"bytes"
 	"encoding/json"

@@ -1,7 +1,7 @@
 package api_test
 
 import (
-	"backend/api"
+	"authserver-backend/api"
 	"net/http"
 	"net/http/httptest"
 	"testing"

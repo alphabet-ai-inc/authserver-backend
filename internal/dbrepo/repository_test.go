@@ -1,7 +1,7 @@
 package dbrepo_test
 
 import (
-	"backend/internal/dbrepo"
+	"authserver-backend/internal/dbrepo"
 	"database/sql"
 	"testing"
 

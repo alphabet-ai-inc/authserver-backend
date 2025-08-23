@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -44,9 +45,15 @@ func (app *Autserverapp) EnableCORS(h http.Handler) http.Handler {
 }
 func (app *Autserverapp) authRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// inspecting the front-end request
+		log.Printf("Request: %s %s", r.Method, r.URL.Path)
+		log.Printf("Headers: %v", r.Header)
+		log.Printf("Body: %v", r.Body)
+
 		_, _, err := app.Auth.GetTokenFromHeaderAndVerify(w, r)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(fmt.Sprintf("El usuario no está autorizado: %d", http.StatusUnauthorized)))
 			return
 		}
 		next.ServeHTTP(w, r)

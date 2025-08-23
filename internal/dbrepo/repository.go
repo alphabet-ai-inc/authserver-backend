@@ -3,7 +3,7 @@ package dbrepo
 import (
 	"database/sql"
 
-	"backend/internal/models"
+	"authserver-backend/internal/models"
 
 	"github.com/stretchr/testify/mock"
 )

@@ -1,26 +1,6 @@
 services:
-  authserver-backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: authserver-backend
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_HOST: ${POSTGRES_HOST}
-      POSTGRES_PORT: 5432
-      DSN: host=postgres port=5432 user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable timezone=UTC connect_timeout=5
-    depends_on:
-      - postgres
-    ports:
-      - '8080:8080'
-    networks:
-      - authserver-network
-
   postgres:
-    image: 'postgres:16.6'
+    image: 'postgres:latest'
     restart: always
     container_name: authserver-db
     environment:
@@ -32,10 +12,29 @@ services:
         max-size: 10m
         max-file: "3"
     ports:
-      - '${POSTGRES_EXTERNAL_PORT}:5432'
+      - ${POSTGRES_EXTERNAL_PORT}:${POSTGRES_EXTERNAL_PORT}
     volumes:
-      - ./postgres-data:/var/lib/postgresql/16/main/base
-      - ./sql/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - ../authserver-database/init:/docker-entrypoint-initdb.d
+
+    networks:
+      - authserver-network
+
+  authserver-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: authserver-backend
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_PORT: ${POSTGRES_EXTERNAL_PORT}
+    depends_on:
+      - postgres
+    ports:
+      - '8080:8080'
     networks:
       - authserver-network
 

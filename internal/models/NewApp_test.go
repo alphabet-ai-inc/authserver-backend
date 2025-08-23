@@ -1,7 +1,7 @@
 package models_test
 
 import (
-	"backend/internal/models"
+	"authserver-backend/internal/models"
 	"encoding/json"
 	"testing"
 

@@ -1,7 +1,7 @@
 package dbrepo
 
 import (
-	"backend/internal/models"
+	"authserver-backend/internal/models"
 	"errors"
 	"regexp"
 	"testing"
