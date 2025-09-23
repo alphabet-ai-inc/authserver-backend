@@ -18,11 +18,11 @@ import (
 // 	return m.GetTokenFromHeaderAndVerifyFunc(w, r)
 // }
 
-// type mockAutserverapp struct {
+// type mockAuthServerApp struct {
 // 	auth AuthInterface // Use the Auth interface defined earlier
 // }
 
-// func (m *mockAutserverapp) authRequired(nextHandler http.HandlerFunc) any {
+// func (m *mockAuthServerApp) authRequired(nextHandler http.HandlerFunc) any {
 // 	panic("unimplemented")
 // }
 
@@ -72,7 +72,7 @@ func TestEnableCORS(t *testing.T) {
 // 		},
 // 	}
 
-// 	app := &mockAutserverapp{
+// 	app := &mockAuthServerApp{
 // 		auth: mockAuth, // Use the mock auth
 // 	}
 

@@ -9,6 +9,7 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
+// Helper function to set up a mock database and return a PostgresDBRepo instance
 func setupMockDB(t *testing.T) (*PostgresDBRepo, sqlmock.Sqlmock, func()) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
@@ -18,6 +19,9 @@ func setupMockDB(t *testing.T) (*PostgresDBRepo, sqlmock.Sqlmock, func()) {
 	return repo, mock, func() { db.Close() }
 }
 
+// Test cases for PostgresDBRepo methods. These tests use sqlmock to simulate database interactions.
+// The tests cover various scenarios including successful queries, errors, and edge cases.
+// Same tests can be written for other methods in the PostgresDBRepo struct and for other database implementations.
 func TestAllApps(t *testing.T) {
 	repo, mock, closeFn := setupMockDB(t)
 	defer closeFn()

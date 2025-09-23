@@ -7,6 +7,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// User represents a user in the system with various attributes.
+// JSON tags are included for serialization/deserialization.
+// This is the main user model used throughout the application,
+// including authentication for every app in the ecosystem
+// and user management in the admin interface.
 type User struct {
 	ID             int    `json:"id"`
 	UserName       string `json:"username"`
@@ -32,15 +37,18 @@ type User struct {
 	Updated        int64  `json:"updated"`
 }
 
+// PassMatch defines the interface for password matching.
 type PassMatch interface {
 	PasswordMatches(string) (bool, error)
 }
 
+// MockPWCheck is a mock implementation of the PassMatch interface for testing purposes.
 type MockPWCheck struct {
 	mock.Mock
 	PassMatch
 }
 
+// PasswordMatches mocks the password matching function.
 func (m *MockPWCheck) PasswordMatches(plainText string, uPasswd string) (bool, error) {
 	args := m.Called(plainText)
 	if args.Get(0) == nil {
@@ -49,6 +57,7 @@ func (m *MockPWCheck) PasswordMatches(plainText string, uPasswd string) (bool, e
 	return true, args.Error(1)
 }
 
+// PasswordMatches checks if the provided plain text password matches the stored hashed password.
 func (u *User) PasswordMatches(plainText string, uPasswd string) (bool, error) {
 	// Compare the plain text password with the hashed password
 	err := bcrypt.CompareHashAndPassword([]byte(uPasswd), []byte(plainText))
@@ -63,3 +72,9 @@ func (u *User) PasswordMatches(plainText string, uPasswd string) (bool, error) {
 	}
 	return true, nil
 }
+
+// This seems not to be the rigth place for these functions.
+// Maybe a utils package would be better.
+// Also could be moved to a service layer to the authservice package
+// or to an authhandler or auth package inside the auth folder.
+// It also will contain the autentication handlers and services now in api package.

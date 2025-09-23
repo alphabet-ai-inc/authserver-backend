@@ -9,11 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// TestRoutes verifies the routing and middleware for the Autserverapp
+// TestRoutes verifies the routing and middleware for the AuthServerApp
 func TestRoutes(t *testing.T) {
 	// mockDB := new(repository.MockDBRepo)
 
-	app := api.Autserverapp{}
+	app := api.AuthServerApp{}
 
 	// Create a test server using the routes
 	ts := httptest.NewServer(app.Routes())

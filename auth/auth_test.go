@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TestGenerateTokenPair tests the GenerateTokenPair method of the Auth struct.
 func TestGenerateTokenPair(t *testing.T) {
 
 	authService := auth.Auth{
@@ -32,6 +33,7 @@ func TestGenerateTokenPair(t *testing.T) {
 	}
 }
 
+// Instead of using a static token, we generate one for testing
 func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 
 	authService := auth.Auth{
@@ -77,6 +79,7 @@ func TestGetTokenFromHeaderAndVerify(t *testing.T) {
 	}
 }
 
+// TestGetRefreshCookie tests the GetRefreshCookie method of the Auth struct.
 func TestGetRefreshCookie(t *testing.T) {
 	auth := &auth.Auth{
 		CookieName:    "refresh_token",
@@ -97,6 +100,7 @@ func TestGetRefreshCookie(t *testing.T) {
 	}
 }
 
+// TestGetExpiredRefreshCookie tests the GetExpiredRefreshCookie method of the Auth struct.
 func TestGetExpiredRefreshCookie(t *testing.T) {
 	auth := &auth.Auth{
 		CookieName:   "refresh_token",
@@ -114,6 +118,7 @@ func TestGetExpiredRefreshCookie(t *testing.T) {
 	}
 }
 
+// TestGetTokenFromHeaderInvalidFormat tests the GetTokenFromHeaderAndVerify method with an invalid token format.
 func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 	authService := &auth.Auth{
 		Issuer:        "testIssuer",
@@ -139,6 +144,7 @@ func TestGetTokenFromHeaderInvalidFormat(t *testing.T) {
 	}
 }
 
+// TestGetTokenFromHeaderNoAuth tests the GetTokenFromHeaderAndVerify method with no Authorization header.
 func TestGetTokenFromHeaderNoAuth(t *testing.T) {
 	authService := &auth.Auth{
 		JWTSecret:     "testSecret",

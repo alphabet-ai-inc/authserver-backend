@@ -14,13 +14,22 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// PostgresDBRepo is a struct that holds the database connection pool.
+// It implements the DatabaseRepo interface.
+// This struct is used to interact with the PostgreSQL database.
+// Changing the database type only requires changes in this file and conditionally use one or another
+// in the main application code where the database connection is established.
+// Or you can create a new file for the new database type and implement the same interface,
+// then import the new file in the main application code and use it instead of this one.
 type PostgresDBRepo struct {
 	DB *sql.DB
 }
 
 const dbTimeout = time.Second * 3
 
-// NewDatabase initializes a new database connection
+// NewDatabase initializes a new database connection using the provided DSN (Data Source Name) and the PostgresDBRepo struct.
+// It returns a pointer to the PostgresDBRepo struct and an error if any occurs during the connection process.
+
 func (m *PostgresDBRepo) ConnectToDB(dsn string) (*sql.DB, error) {
 	db, err := sql.Open("pgx", dsn)
 	if err != nil {
@@ -30,6 +39,9 @@ func (m *PostgresDBRepo) ConnectToDB(dsn string) (*sql.DB, error) {
 	return db, err
 }
 
+// Connection returns the sql.DB connection pool.
+// It returns an error if the database connection is not initialized.
+
 func (m *PostgresDBRepo) Connection() (*sql.DB, error) {
 	if m.DB == nil {
 		return nil, fmt.Errorf("database connection is not initialized")
@@ -38,6 +50,11 @@ func (m *PostgresDBRepo) Connection() (*sql.DB, error) {
 
 }
 
+// AllApps returns a slice of all applications from the database.
+// This is for now the same for users and admins, but in the future it might be different.
+// The usesr will see only the apps they have access to, while the admins will see all apps.
+// The users will see only the fields relevant to linking to the app.
+// Perhaps it is possible to use the same model for both, but selecting the fields to return in the query.
 func (m *PostgresDBRepo) AllApps() ([]*models.ThisApp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -90,6 +107,8 @@ func (m *PostgresDBRepo) AllApps() ([]*models.ThisApp, error) {
 	return apps, nil
 }
 
+// ThisApp returns a single application by its ID from the database.
+// It returns a pointer to the ThisApp struct and an error if any occurs during the query process.
 func (m *PostgresDBRepo) ThisApp(id int) (*models.ThisApp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -132,6 +151,7 @@ func (m *PostgresDBRepo) ThisApp(id int) (*models.ThisApp, error) {
 	return &thisapp, err
 }
 
+// ThisAppForEdit returns a single application by its ID from the database for editing purposes.
 func (m *PostgresDBRepo) ThisAppForEdit(id int) (*models.ThisApp, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -174,6 +194,7 @@ func (m *PostgresDBRepo) ThisAppForEdit(id int) (*models.ThisApp, error) {
 	return &thisapp, err
 }
 
+// InsertApp inserts a new application into the database.
 func (m *PostgresDBRepo) InsertApp(newapp models.NewApp) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -192,7 +213,7 @@ func (m *PostgresDBRepo) InsertApp(newapp models.NewApp) (int, error) {
 	values (
 		$1, $2, $3, $4, $5, $6, $7, $8
 	)
-	returning id, 1 
+	returning id
 	`
 	var newID int
 
@@ -215,6 +236,7 @@ func (m *PostgresDBRepo) InsertApp(newapp models.NewApp) (int, error) {
 
 }
 
+// UpdateApp updates an existing application in the database.
 func (m *PostgresDBRepo) UpdateApp(thisapp models.ThisApp) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -243,6 +265,7 @@ func (m *PostgresDBRepo) UpdateApp(thisapp models.ThisApp) error {
 	return nil
 }
 
+// DeleteApp deletes an application from the database by its ID.
 func (m *PostgresDBRepo) DeleteApp(id int) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 
@@ -260,6 +283,7 @@ func (m *PostgresDBRepo) DeleteApp(id int) error {
 
 }
 
+// GetUserByEmail retrieves a user from the database by their email address.
 func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 	// Get user by email
 	if _, err := m.Connection(); err != nil {
@@ -312,6 +336,8 @@ func (m *PostgresDBRepo) GetUserByEmail(email string) (*models.User, error) {
 	// return &user, err
 	return &user, nil
 }
+
+// GetUserByID retrieves a user from the database by their ID.
 func (m *PostgresDBRepo) GetUserByID(id int) (*models.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 

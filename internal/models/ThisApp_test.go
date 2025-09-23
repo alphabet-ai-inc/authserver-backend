@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestThisApp tests the ThisApp struct for JSON serialization/deserialization and the Error method.
 func TestThisApp(t *testing.T) {
 	// Create an instance of ThisApp
 	app := models.ThisApp{
@@ -18,7 +19,7 @@ func TestThisApp(t *testing.T) {
 			Path:    "/test/path",
 			Init:    "init.sh",
 			Web:     "http://testapp.com",
-			Title:   "Test Autserverapp",
+			Title:   "Test AuthServerApp",
 			Created: 1660000000, // Example timestamp
 			Updated: 1660000001,
 		},
@@ -28,7 +29,7 @@ func TestThisApp(t *testing.T) {
 	data, err := json.Marshal(app)
 	assert.NoError(t, err)
 
-	expectedJSON := `{"id":1,"name":"Test App","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test Autserverapp","created":1660000000,"updated":1660000001}`
+	expectedJSON := `{"id":1,"name":"Test App","release":"1.0.0","path":"/test/path","init":"init.sh","web":"http://testapp.com","title":"Test AuthServerApp","created":1660000000,"updated":1660000001}`
 	assert.JSONEq(t, expectedJSON, string(data))
 
 	// Test deserialization (unmarshal)

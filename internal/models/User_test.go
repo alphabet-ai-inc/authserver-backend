@@ -8,6 +8,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// TestPasswordMatches tests the PasswordMatches method of the User struct.
 func TestPasswordMatches(t *testing.T) {
 	// Create a user with a hashed password
 	plaintextPassword := "mysecretpassword"

@@ -1,3 +1,4 @@
+// Package api provides HTTP routing and middleware for the authserver-backend application.
 package api
 
 import (
@@ -8,7 +9,12 @@ import (
 	"strings"
 )
 
-func (app *Autserverapp) EnableCORS(h http.Handler) http.Handler {
+// EnableCORS is a middleware function that enables Cross-Origin Resource Sharing (CORS).
+// It allows requests from specified origins and handles preflight OPTIONS requests.
+// Adjust the allowed origins as needed for your application.
+// For production, ensure to set the ALLOWED_ORIGINS environment variable appropriately.
+
+func (app *AuthServerApp) EnableCORS(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 		origin := r.Header.Get("Origin")
@@ -43,12 +49,12 @@ func (app *Autserverapp) EnableCORS(h http.Handler) http.Handler {
 		}
 	})
 }
-func (app *Autserverapp) authRequired(next http.Handler) http.Handler {
+func (app *AuthServerApp) authRequired(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// inspecting the front-end request
-		log.Printf("Request: %s %s", r.Method, r.URL.Path)
-		log.Printf("Headers: %v", r.Header)
-		log.Printf("Body: %v", r.Body)
+		// log.Printf("Request: %s %s", r.Method, r.URL.Path)
+		// log.Printf("Headers: %v", r.Header)
+		// log.Printf("Body: %v", r.Body)
 
 		_, _, err := app.Auth.GetTokenFromHeaderAndVerify(w, r)
 		if err != nil {

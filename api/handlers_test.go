@@ -21,9 +21,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Autserverapp is the main application struct
-var app Autserverapp
+// AuthServerApp is the main application struct
+var app AuthServerApp
 
+// TestHomeHandler tests the communication between the front-end and back-end
+// by sending a GET request to the home handler and checking the response.
+// without auth middleware for simplicity or accessing the database.
 func TestHomeHandler(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodGet, "/", nil)
@@ -44,6 +47,9 @@ func TestHomeHandler(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
+
+// TestAppsHandler tests the apps handler by sending a GET request to the /apps endpoint
+// and checking the response for the expected list of apps.
 func TestAppsHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 	expectedApps := []*models.ThisApp{
@@ -52,7 +58,7 @@ func TestAppsHandler(t *testing.T) {
 	}
 	mockDB.On("AllApps").Return(expectedApps, nil)
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -70,7 +76,7 @@ func TestAppsHandler(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	req.Header.Set("Content-Type", "Autserverapp/json")
+	req.Header.Set("Content-Type", "AuthServerApp/json")
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(app.Apps)
@@ -93,6 +99,10 @@ func TestAppsHandler(t *testing.T) {
 	mockDB.AssertExpectations(t)
 }
 
+// TestAppsCatalogueHandler tests the apps catalogue handler by sending a GET request to the /apps-catalogue endpoint
+// and checking the response for the expected list of apps. Is by now the same as TestAppsHandler.
+// The difference is that one is for a common user and the other one is for admin users, so in the future
+// we might want to add more specific checks or different behaviors based on the user role.
 func TestAppsCatalogueHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
@@ -101,13 +111,13 @@ func TestAppsCatalogueHandler(t *testing.T) {
 		{ID: 2, NewApp: models.NewApp{Name: "App 2"}},
 	}
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
 	mockDB.On("AllApps").Return(expectedArrApps, nil)
 	req, err := http.NewRequest(http.MethodGet, "/apps-catalogue", nil)
-	req.Header.Set("Content-Type", "Autserverapp/json")
+	req.Header.Set("Content-Type", "AuthServerApp/json")
 
 	if err != nil {
 		t.Fatal(err)
@@ -132,6 +142,11 @@ func TestAppsCatalogueHandler(t *testing.T) {
 	mockDB.AssertExpectations(t)
 }
 
+// TestGetAppHandler tests the GetApp handler by sending a GET request to the /app/{id} endpoint
+// This handler retrieves a specific app by its ID and returns its details in the response.
+// This is for common users to view app details.
+// Probably in the future we might want to add more specific checks or different behaviors based on the user role.
+// For instance, we might give access directly to the app link from here if the user is authenticated.
 func TestGetAppHandler(t *testing.T) {
 
 	mockDB := new(dbrepo.MockDBRepo)
@@ -139,7 +154,7 @@ func TestGetAppHandler(t *testing.T) {
 	expectedApp := models.ThisApp{
 		ID: 1, NewApp: models.NewApp{Name: "App 1"},
 	}
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -166,6 +181,7 @@ func TestGetAppHandler(t *testing.T) {
 	assert.Equal(t, expectedApp, response)
 }
 
+// TestGetAppHandler_InvalidID tests the GetApp handler with an invalid ID parameter
 func TestGetAppHandler_InvalidID(t *testing.T) {
 
 	req, err := http.NewRequest(http.MethodGet, "/app/invalid", nil)
@@ -187,11 +203,12 @@ func TestGetAppHandler_InvalidID(t *testing.T) {
 	}
 }
 
+// TestGetAppHandler_NotFound tests the GetApp handler when the app is not found in the database
 func TestGetAppHandler_NotFound(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 	mockDB.On("ThisApp", 1).Return(&models.ThisApp{}, errors.New("app not found"))
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -217,13 +234,14 @@ func TestGetAppHandler_NotFound(t *testing.T) {
 	}
 }
 
+// TestThisAppHandler tests the ThisApp handler by sending a GET request to the /this-app/{id} endpoint
 func TestThisAppHandler(t *testing.T) {
 
 	mockDB := new(dbrepo.MockDBRepo)
 	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
 
 	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -249,12 +267,15 @@ func TestThisAppHandler(t *testing.T) {
 	assert.Equal(t, expectedApp, response)
 }
 
+// TestThisAppForEditHandler tests the ThisAppForEdit handler by sending a GET request to the /this-app-for-edit/{id} endpoint
+// and checking the response for the expected app details.
+// This handler is typically used for admin users to fetch app details for editing purposes.
 func TestThisAppForEditHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
 
 	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -283,6 +304,9 @@ func TestThisAppForEditHandler(t *testing.T) {
 
 	assert.Equal(t, expectedApp, response)
 }
+
+// TestInsertAppHandler tests the InsertApp handler by sending a POST request to the /insert-app endpoint
+// with a new app payload and checking the response for successful insertion. Only for admin users.
 func TestInsertAppHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
@@ -310,7 +334,7 @@ func TestInsertAppHandler(t *testing.T) {
 	}
 
 	mockDB.On("InsertApp", newApp).Return(1, nil)
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -323,7 +347,7 @@ func TestInsertAppHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "Autserverapp/json")
+	req.Header.Set("Content-Type", "AuthServerApp/json")
 	req = mux.SetURLVars(req, map[string]string{"name": newApp.Name})
 
 	rr := httptest.NewRecorder()
@@ -340,6 +364,9 @@ func TestInsertAppHandler(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
+
+// TestUpdateAppHandler tests the UpdateApp handler by sending a PATCH request to the /update-app/{id} endpoint
+// with updated app details and checking the response for successful update. Only for admin users.
 func TestUpdateAppHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
@@ -373,7 +400,7 @@ func TestUpdateAppHandler(t *testing.T) {
 
 	mockDB.On("ThisApp", existingApp.ID).Return(&existingApp, nil)
 	mockDB.On("UpdateApp", updatedApp).Return(nil)
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -386,7 +413,7 @@ func TestUpdateAppHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "Autserverapp/json")
+	req.Header.Set("Content-Type", "AuthServerApp/json")
 	req = mux.SetURLVars(req, map[string]string{
 		"id":      fmt.Sprintf("%d", existingApp.ID),
 		"name":    existingApp.Name,
@@ -414,12 +441,14 @@ func TestUpdateAppHandler(t *testing.T) {
 	}
 }
 
+// TestDeleteAppHandler tests the DeleteApp handler by sending a DELETE request to the /delete-app/{id} endpoint
+// and checking the response for successful deletion. Only for admin users.
 func TestDeleteAppHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
 	mockDB.On("DeleteApp", 1).Return(nil)
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
@@ -444,6 +473,9 @@ func TestDeleteAppHandler(t *testing.T) {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
 }
+
+// TestAuthenticateHandler tests the Authenticate handler by sending a POST request to the /authenticate endpoint
+// with valid user credentials and checking the response for the expected JWT tokens.
 func TestAuthenticateHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
@@ -456,7 +488,7 @@ func TestAuthenticateHandler(t *testing.T) {
 	}
 	mockDB.On("GetUserByEmail", "user@example.com").Return(expectedUser, nil)
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 		Auth: auth.Auth{
 			Secret:     "test_secret",
@@ -495,10 +527,12 @@ func TestAuthenticateHandler(t *testing.T) {
 	}
 }
 
+// TestRefreshTokenHandler tests the RefreshToken handler by sending a POST request to the /refresh-token endpoint
+// with a valid refresh token cookie and checking the response for new JWT tokens.
 func TestRefreshTokenHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
 
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		DB: mockDB,
 		Auth: auth.Auth{
 			CookieName: "refresh_token",
@@ -549,11 +583,13 @@ func TestRefreshTokenHandler(t *testing.T) {
 	assert.NotEmpty(t, response.RefreshToken)
 }
 
+// TestLogoutHandler tests the Logout handler by sending a POST request to the /logout endpoint
+// and checking the response for successful logout and cookie deletion.
 func TestLogoutHandler(t *testing.T) {
 	testAuth := auth.Auth{
 		CookieName: "refresh_token",
 	}
-	app := &Autserverapp{
+	app := &AuthServerApp{
 		Auth: testAuth,
 	}
 	type MockAutserver struct {

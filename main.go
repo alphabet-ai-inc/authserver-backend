@@ -18,9 +18,10 @@ import (
 
 var port int
 
+// main is the entry point for the application.
 func main() {
 	// Locate the current directory
-	app := api.Autserverapp{}
+	app := api.AuthServerApp{}
 	dir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -64,7 +65,6 @@ func main() {
 	if app.JWTSecret == "" {
 		log.Fatal("JWT_SECRET environment variable is not set")
 	}
-	log.Println("DSN: " + app.DSN)
 
 	repo := &dbrepo.PostgresDBRepo{}
 	db, err := repo.ConnectToDB(app.DSN)

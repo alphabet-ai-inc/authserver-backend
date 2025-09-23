@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// TestWriteJSON tests the WriteJSON method of the JSONResponse struct.
 func TestWriteJSON(t *testing.T) {
 	rr := httptest.NewRecorder()
 	err := errors.New("test error")
@@ -26,7 +27,6 @@ func TestWriteJSON(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
-	// println("rr.Body.String() = ", rr.Body.String())
 }
 
 func TestReadJSON(t *testing.T) {

@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+// JSONResponse is a struct for standard JSON responses.
+// It can be used for both success (write and read) and error responses.
 type JSONResponse struct {
 	Error   bool        `json:"error"`
 	Message string      `json:"message"`

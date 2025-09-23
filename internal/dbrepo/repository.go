@@ -1,5 +1,8 @@
 package dbrepo
 
+// repository.go is the file that contains the repository struct and methods for database operations.
+// It implements the DatabaseRepo interface. Any database motore (Postgres, MySQL, SQLite, etc.)
+// can be used by creating a new struct that implements the DatabaseRepo interface.
 import (
 	"database/sql"
 
@@ -8,6 +11,9 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+// DatabaseRepo is the interface that wraps the basic methods for database operations. When testing,
+// we use the mock implementation of this interface. When running the application, we use the
+// actual implementation in postgresdb.go.
 type DatabaseRepo interface {
 	ConnectToDB(dsn string) (*sql.DB, error)
 	Connection() (*sql.DB, error)
@@ -21,6 +27,9 @@ type DatabaseRepo interface {
 	GetUserByID(id int) (*models.User, error)
 }
 
+// MockDBRepo is a mock implementation of the DatabaseRepo interface for testing purposes.
+// In the future, we can use a mocking library like testify to create a more robust mock.
+// For now, we will implement the methods manually.
 type MockDBRepo struct {
 	mock.Mock
 	DatabaseRepo

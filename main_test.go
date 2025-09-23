@@ -8,13 +8,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	// "github.com/yourusername/yourproject/api"
 )
 
 func TestHome(t *testing.T) {
-	// Initialize Autserverapp with necessary data
+	// Initialize AuthServerApp with necessary data
 
-	app := api.Autserverapp{
+	app := api.AuthServerApp{
 		JWTSecret: "testsecret",
 	}
 

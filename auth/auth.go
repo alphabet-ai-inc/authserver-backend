@@ -10,6 +10,16 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+// Auth struct holds configuration for JWT authentication
+// It is used to generate and validate JWT tokens.
+// JWT tokens are signed using the HMAC SHA256 algorithm,
+// and contains methods for generating and validating tokens,
+// that include user information in the token claims.
+// The claims are custom and include user ID and email.
+// Other claims like issuer, audience, issued at and expiry are also included.
+// The struct also includes methods for generating refresh tokens
+// and setting refresh tokens in HTTP cookies. The tokens expire after a configurable duration.
+// The struct also includes methods for mocking tokens for testing purposes.
 type Auth struct {
 	Issuer           string
 	Audience         string
@@ -24,6 +34,10 @@ type Auth struct {
 	JWTSecret        string
 }
 
+// AuthInterface defines the methods that any authentication service should implement.
+// This allows for flexibility in swapping out different authentication implementations.
+// In this case, it includes the mocking of GetTokenFromHeaderAndVerify method for testing purposes.
+// Then, in tests, we can create a mock struct that implements this interface and in development we can use the real Auth struct.
 type AuthInterface interface {
 	GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error)
 }
@@ -38,11 +52,16 @@ type MockAuth struct {
 	RefreshToken string
 }
 
+// TokenPairs holds the access and refresh tokens. It is used to return both tokens together.
+// In this case, both tokens are strings with the access token being the main JWT token used for authentication
+// and the refresh token being used to obtain a new access token when the original expires.
 type TokenPairs struct {
 	Token        string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
 
+// Claims defines the custom JWT claims used in the tokens. It includes user ID and email,
+// along with standard claims like issuer, issued at, and expiry time.
 type Claims struct {
 	UserID int    `json:"user_id"`
 	Email  string `json:"email"`
@@ -89,6 +108,7 @@ func (j *Auth) GenerateTokenPair(user *JWTUser) (TokenPairs, error) {
 	}, nil
 }
 
+// GetRefreshCookie creates an HTTP cookie to store the refresh token securely.
 func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 	return &http.Cookie{
 		Name:     j.CookieName,
@@ -102,6 +122,8 @@ func (j *Auth) GetRefreshCookie(refreshToken string) *http.Cookie {
 		Secure:   true,
 	}
 }
+
+// GetExpiredRefreshCookie creates an HTTP cookie that effectively deletes the refresh token by setting its expiration date in the past.
 func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 	return &http.Cookie{
 		Name:     j.CookieName,
@@ -117,9 +139,6 @@ func (j *Auth) GetExpiredRefreshCookie() *http.Cookie {
 }
 
 func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Request) (string, *Claims, error) {
-	// Parece estar mal el siguiente header array. Debería pasarle una autorizacion el cliente con el request
-	// w.Header().Add("Authorization", "Bearer "+j.MockToken)
-
 	// get auth header
 	authHeader := r.Header.Get("Authorization")
 
@@ -127,7 +146,6 @@ func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Reques
 	if authHeader == "" {
 		return "", nil, errors.New("no auth header")
 	}
-	fmt.Printf("Authorization: %v", authHeader)
 	//split the header on spaces
 	headerParts := strings.Split(authHeader, " ")
 	if len(headerParts) != 2 {
@@ -138,7 +156,8 @@ func (j *Auth) GetTokenFromHeaderAndVerify(w http.ResponseWriter, r *http.Reques
 	if headerParts[0] != "Bearer" {
 		return "", nil, errors.New("invalid auth header")
 	}
-
+	// get the token part from the header that comes after Bearer in the header, part of the request
+	// that comes as parameter to this function
 	token := headerParts[1]
 
 	// declare an empty claims
