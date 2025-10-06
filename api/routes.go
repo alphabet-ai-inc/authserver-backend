@@ -42,7 +42,7 @@ func (app *AuthServerApp) Routes() http.Handler {
 	mux.Post("/validatesession", app.ValidateSession)
 	mux.Get("/apps", app.Apps)
 	mux.Get("/apps/{id}", app.GetApp)
-
+	mux.Get("/releases", app.GetReleases) // Assuming app is your AuthServerApp instance
 	mux.Route("/admin", func(mux chi.Router) {
 		mux.Use(app.authRequired)
 

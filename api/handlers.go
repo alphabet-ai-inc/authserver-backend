@@ -65,7 +65,7 @@ func (app *AuthServerApp) Home(w http.ResponseWriter, r *http.Request) {
 // from here, to the links to the actual apps.
 func (app *AuthServerApp) Apps(w http.ResponseWriter, r *http.Request) {
 
-	apps, err := app.DB.AllApps()
+	apps, err := app.DB.AllApps("")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err, http.StatusBadRequest)
 		return
@@ -80,7 +80,7 @@ func (app *AuthServerApp) Apps(w http.ResponseWriter, r *http.Request) {
 // This is for admin use only.
 func (app *AuthServerApp) AppsCatalogue(w http.ResponseWriter, r *http.Request) {
 
-	apps, err := app.DB.AllApps()
+	apps, err := app.DB.AllApps("")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
@@ -96,6 +96,7 @@ func (app *AuthServerApp) AppsCatalogue(w http.ResponseWriter, r *http.Request) 
 // This handler is for common users to get app details and probably links to the actual app.
 func (app *AuthServerApp) GetApp(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+
 	if id == "" {
 		utils.JSONResponse{}.ErrorJSON(w, errors.New("id is missing in URL"), http.StatusBadRequest)
 		return
@@ -107,7 +108,8 @@ func (app *AuthServerApp) GetApp(w http.ResponseWriter, r *http.Request) {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
 	}
-	thisapp, err := app.DB.ThisApp(appID)
+
+	thisapp, err := app.DB.ThisApp(appID, "")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
@@ -121,7 +123,8 @@ func (app *AuthServerApp) GetApp(w http.ResponseWriter, r *http.Request) {
 func (app *AuthServerApp) ThisApp(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
-		utils.JSONResponse{}.ErrorJSON(w, errors.New("id is missing in URL"), http.StatusBadRequest)
+		// If the ID is missing / invalid, return a 400 Bad Request error
+		utils.JSONResponse{}.ErrorJSON(w, errors.New("id is missing in the URL"), http.StatusBadRequest)
 		return
 	}
 
@@ -132,7 +135,7 @@ func (app *AuthServerApp) ThisApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	thisapp, err := app.DB.ThisApp(appID)
+	thisapp, err := app.DB.ThisApp(appID, "")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
@@ -157,7 +160,7 @@ func (app *AuthServerApp) ThisAppForEdit(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	thisapp, err := app.DB.ThisApp(appID)
+	thisapp, err := app.DB.ThisApp(appID, "")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
@@ -190,7 +193,7 @@ func (app *AuthServerApp) InsertApp(w http.ResponseWriter, r *http.Request) {
 	newapp.Created = time.Now().Unix()
 	newapp.Updated = time.Now().Unix()
 
-	newID, err := app.DB.InsertApp(newapp)
+	newID, err := app.DB.InsertApp(newapp, "")
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
 		return
@@ -219,7 +222,7 @@ func (app *AuthServerApp) UpdateApp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	thisapp, err := app.DB.ThisApp(payload.ID)
+	thisapp, err := app.DB.ThisApp(payload.ID, "")
 
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
@@ -236,7 +239,7 @@ func (app *AuthServerApp) UpdateApp(w http.ResponseWriter, r *http.Request) {
 	thisapp.Created = payload.Created
 	thisapp.Updated = time.Now().Unix()
 
-	err = app.DB.UpdateApp(*thisapp)
+	err = app.DB.UpdateApp(*thisapp, "")
 
 	if err != nil {
 		utils.JSONResponse{}.ErrorJSON(w, err)
@@ -278,6 +281,24 @@ func (app *AuthServerApp) DeleteApp(w http.ResponseWriter, r *http.Request) {
 		Message: "app deleted",
 	}
 	utils.JSONResponse{}.WriteJSON(w, http.StatusAccepted, resp)
+}
+
+// GetReleases returns a list of available release options
+func (app *AuthServerApp) GetReleases(w http.ResponseWriter, r *http.Request) {
+	// Optional: Check for JWT token if releases are admin-only
+	// (Similar to your other handlers, e.g., using middleware)
+
+	// Release options with id equal to value (no conversion needed)
+	// This is hardcoded for now in dbrepo, but could be fetched from a database table in the future
+	// or from a configuration file.
+	resp, err := app.DB.GetReleases()
+	if err != nil {
+		utils.JSONResponse{}.ErrorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// Respond with JSON
+	_ = utils.JSONResponse.WriteJSON(utils.JSONResponse{}, w, http.StatusOK, resp)
 }
 
 // The rest of the functions are related to authentication and session management.

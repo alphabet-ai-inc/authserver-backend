@@ -1,6 +1,10 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/lib/pq"
+)
 
 // NewApp represents the fields required to create a new application entry in the database.
 // This struct is used when inserting a new application. It does not include the ID field,
@@ -8,17 +12,332 @@ import "fmt"
 // to ThisApp. Perhaps in the future, we can merge these two structs into one and use tags
 // to differentiate between the two use cases.
 type NewApp struct {
-	Name    string `json:"name"`
-	Release string `json:"release"`
-	Path    string `json:"path"`
-	Init    string `json:"init"`
-	Web     string `json:"web"`
-	Title   string `json:"title"`
-	Created int64  `json:"created"`
-	Updated int64  `json:"updated"`
+	Name                    string         `json:"name"`
+	Release                 string         `json:"release"`
+	Path                    string         `json:"path"`
+	Init                    string         `json:"init"`
+	Web                     string         `json:"web"`
+	Title                   string         `json:"title"`
+	Created                 int64          `json:"created"`
+	Updated                 int64          `json:"updated"`
+	Description             string         `json:"description"`
+	PositioningStmt         string         `json:"positioning_stmt"`
+	Logo                    string         `json:"logo"` // URL or path
+	Category                string         `json:"category"`
+	Platform                pq.StringArray `json:"platform" gorm:"type:text[]"` // Slice for multiple platforms
+	Developer               string         `json:"developer"`
+	LicenseType             string         `json:"license_type"`
+	Size                    int64          `json:"size"`                     // Size in bytes
+	Compatibility           pq.StringArray `json:"compatibility"`            // Slice for versions or systems
+	IntegrationCapabilities pq.StringArray `json:"integration_capabilities"` // Slice
+	DevelopmentStack        pq.StringArray `json:"development_stack"`        // Slice
+	APIDocumentation        string         `json:"api_documentation"`        // URL
+	SecurityFeatures        pq.StringArray `json:"security_features"`        // Slice
+	RegulatoryCompliance    pq.StringArray `json:"regulatory_compliance"`    // Slice
+	RevenueStreams          pq.StringArray `json:"revenue_streams"`          // Slice
+	CustomerSegments        pq.StringArray `json:"customer_segments"`        // Slice
+	Channels                pq.StringArray `json:"channels"`                 // Slice
+	ValueProposition        string         `json:"value_proposition"`
+	PricingTiers            pq.StringArray `json:"pricing_tiers"`          // Slice
+	Partnerships            pq.StringArray `json:"partnerships"`           // Slice
+	CostStructure           pq.StringArray `json:"cost_structure"`         // Slice
+	CustomerRelationships   pq.StringArray `json:"customer_relationships"` // Slice
+	UnfairAdvantage         string         `json:"unfair_advantage"`
+	Roadmap                 string         `json:"roadmap"`               // URL or description
+	VersionControl          string         `json:"version_control"`       // URL
+	ErrorRate               float64        `json:"error_rate"`            // Percentage
+	AverageResponseTime     float64        `json:"average_response_time"` // In seconds
+	UptimePercentage        float64        `json:"uptime_percentage"`     // Percentage
+	KeyActivities           pq.StringArray `json:"key_activities"`        // Slice
+	ActiveUsers             int            `json:"active_users"`
+	UserRetentionRate       float64        `json:"user_retention_rate"`       // Percentage
+	UserAcquisitionCost     float64        `json:"user_acquisition_cost"`     // Currency
+	ChurnRate               float64        `json:"churn_rate"`                // Percentage
+	MonthlyRecurringRevenue float64        `json:"monthly_recurring_revenue"` // Currency
+	UserFeedback            pq.StringArray `json:"user_feedback"`             // Slice of comments
+	BackupRecoveryOptions   pq.StringArray `json:"backup_recovery_options"`   // Slice
+	LocalizationSupport     pq.StringArray `json:"localization_support"`      // Slice of languages
+	AccessibilityFeatures   pq.StringArray `json:"accessibility_features"`    // Slice
+	TeamStructure           pq.StringArray `json:"team_structure"`            // Slice
+	DataBackupLocation      string         `json:"data_backup_location"`      // URL or location
+	EnvironmentalImpact     string         `json:"environmental_impact"`
+	SocialImpact            string         `json:"social_impact"`
+	IntellectualProperty    pq.StringArray `json:"intellectual_property"` // Slice
+	FundingsInvestment      float64        `json:"fundings_investment"`   // Currency
+	ExitStrategy            string         `json:"exit_strategy"`
+	AnalyticsTools          pq.StringArray `json:"analytics_tools"` // Slice
+	KeyMetrics              pq.StringArray `json:"key_metrics"`     // Slice
+	URL                     string         `json:"url"`             // URL
+	LandingPage             string         `json:"landing_page"`    // URL
 }
 
 // Error implements error.
+// ...existing code...
 func (t NewApp) Error() string {
-	return fmt.Sprintf("NewApp error: Name: %s, Release: %s, Path: %s, Init: %s, Web: %s, Title: %s, Created: %d, Updated: %d", t.Name, t.Release, t.Path, t.Init, t.Web, t.Title, t.Created, t.Updated)
+	return fmt.Sprintf(`NewApp error:
+		Name: %s,
+		Release: %s,
+		Path: %s,
+		Init: %s,
+		Web: %s,
+		Title: %s,
+		Created: %v,
+		Updated: %v,
+		Description: %s,
+		PositioningStmt: %s,
+		Logo: %s,
+		Category: %s,
+		Platform: %v,
+		Developer: %s,
+		LicenseType: %s,
+		Size: %d,
+		Compatibility: %v,
+		IntegrationCapabilities: %v,
+		DevelopmentStack: %v,
+		APIDocumentation: %s,
+		SecurityFeatures: %v,
+		RegulatoryCompliance: %v,
+		RevenueStreams: %v,
+		CustomerSegments: %v,
+		Channels: %v,
+		ValueProposition: %s,
+		PricingTiers: %v,
+		Partnerships: %v,
+		CostStructure: %v,
+		CustomerRelationships: %v,
+		UnfairAdvantage: %s,
+		Roadmap: %s,
+		VersionControl: %s,
+		ErrorRate: %f,
+		AverageResponseTime: %f,
+		UptimePercentage: %f,
+		KeyActivities: %v,
+		ActiveUsers: %d,
+		UserRetentionRate: %f,
+		UserAcquisitionCost: %f,
+		ChurnRate: %f,
+		MonthlyRecurringRevenue: %f,
+		UserFeedback: %v,
+		BackupRecoveryOptions: %v,
+		LocalizationSupport: %v,
+		AccessibilityFeatures: %v,
+		TeamStructure: %v,
+		DataBackupLocation: %s,
+		EnvironmentalImpact: %s,
+		SocialImpact: %s,
+		IntellectualProperty: %v,
+		FundingsInvestment: %f,
+		ExitStrategy: %s,
+		AnalyticsTools: %v,
+		KeyMetrics: %v,
+		URL: %s,
+		LandingPage: %s`,
+		t.Name,
+		t.Release,
+		t.Path,
+		t.Init,
+		t.Web,
+		t.Title,
+		t.Created,
+		t.Updated,
+		t.Description,
+		t.PositioningStmt,
+		t.Logo,
+		t.Category,
+		t.Platform,
+		t.Developer,
+		t.LicenseType,
+		t.Size,
+		t.Compatibility,
+		t.IntegrationCapabilities,
+		t.DevelopmentStack,
+		t.APIDocumentation,
+		t.SecurityFeatures,
+		t.RegulatoryCompliance,
+		t.RevenueStreams,
+		t.CustomerSegments,
+		t.Channels,
+		t.ValueProposition,
+		t.PricingTiers,
+		t.Partnerships,
+		t.CostStructure,
+		t.CustomerRelationships,
+		t.UnfairAdvantage,
+		t.Roadmap,
+		t.VersionControl,
+		t.ErrorRate,
+		t.AverageResponseTime,
+		t.UptimePercentage,
+		t.KeyActivities,
+		t.ActiveUsers,
+		t.UserRetentionRate,
+		t.UserAcquisitionCost,
+		t.ChurnRate,
+		t.MonthlyRecurringRevenue,
+		t.UserFeedback,
+		t.BackupRecoveryOptions,
+		t.LocalizationSupport,
+		t.AccessibilityFeatures,
+		t.TeamStructure,
+		t.DataBackupLocation,
+		t.EnvironmentalImpact,
+		t.SocialImpact,
+		t.IntellectualProperty,
+		t.FundingsInvestment,
+		t.ExitStrategy,
+		t.AnalyticsTools,
+		t.KeyMetrics,
+		t.URL,
+		t.LandingPage,
+	)
 }
+
+// ...existing code...
+func (t *NewApp) ScanDest(numFields int) []any {
+	full := []any{
+		&t.Name,
+		&t.Release,
+		&t.Path,
+		&t.Init,
+		&t.Web,
+		&t.Title,
+		&t.Created,
+		&t.Updated,
+		&t.Description,
+		&t.PositioningStmt,
+		&t.Logo,
+		&t.Category,
+		&t.Platform,
+		&t.Developer,
+		&t.LicenseType,
+		&t.Size,
+		&t.Compatibility,
+		&t.IntegrationCapabilities,
+		&t.DevelopmentStack,
+		&t.APIDocumentation,
+		&t.SecurityFeatures,
+		&t.RegulatoryCompliance,
+		&t.RevenueStreams,
+		&t.CustomerSegments,
+		&t.Channels,
+		&t.ValueProposition,
+		&t.PricingTiers,
+		&t.Partnerships,
+		&t.CostStructure,
+		&t.CustomerRelationships,
+		&t.UnfairAdvantage,
+		&t.Roadmap,
+		&t.VersionControl,
+		&t.ErrorRate,
+		&t.AverageResponseTime,
+		&t.UptimePercentage,
+		&t.KeyActivities,
+		&t.ActiveUsers,
+		&t.UserRetentionRate,
+		&t.UserAcquisitionCost,
+		&t.ChurnRate,
+		&t.MonthlyRecurringRevenue,
+		&t.UserFeedback,
+		&t.BackupRecoveryOptions,
+		&t.LocalizationSupport,
+		&t.AccessibilityFeatures,
+		&t.TeamStructure,
+		&t.DataBackupLocation,
+		&t.EnvironmentalImpact,
+		&t.SocialImpact,
+		&t.IntellectualProperty,
+		&t.FundingsInvestment,
+		&t.ExitStrategy,
+		&t.AnalyticsTools,
+		&t.KeyMetrics,
+		&t.URL,
+		&t.LandingPage,
+	}
+	if numFields <= 0 || numFields >= len(full) {
+		return full
+	}
+	return full[:numFields]
+}
+
+// Values returns a slice of NewApp field values for use in database inserts/updates.
+func (t NewApp) Values(numFields int) []any {
+	full := []any{
+		t.Name,
+		t.Release,
+		t.Path,
+		t.Init,
+		t.Web,
+		t.Title,
+		t.Created,
+		t.Updated,
+		t.Description,
+		t.PositioningStmt,
+		t.Logo,
+		t.Category,
+		t.Platform,
+		t.Developer,
+		t.LicenseType,
+		t.Size,
+		t.Compatibility,
+		t.IntegrationCapabilities,
+		t.DevelopmentStack,
+		t.APIDocumentation,
+		t.SecurityFeatures,
+		t.RegulatoryCompliance,
+		t.RevenueStreams,
+		t.CustomerSegments,
+		t.Channels,
+		t.ValueProposition,
+		t.PricingTiers,
+		t.Partnerships,
+		t.CostStructure,
+		t.CustomerRelationships,
+		t.UnfairAdvantage,
+		t.Roadmap,
+		t.VersionControl,
+		t.ErrorRate,
+		t.AverageResponseTime,
+		t.UptimePercentage,
+		t.KeyActivities,
+		t.ActiveUsers,
+		t.UserRetentionRate,
+		t.UserAcquisitionCost,
+		t.ChurnRate,
+		t.MonthlyRecurringRevenue,
+		t.UserFeedback,
+		t.BackupRecoveryOptions,
+		t.LocalizationSupport,
+		t.AccessibilityFeatures,
+		t.TeamStructure,
+		t.DataBackupLocation,
+		t.EnvironmentalImpact,
+		t.SocialImpact,
+		t.IntellectualProperty,
+		t.FundingsInvestment,
+		t.ExitStrategy,
+		t.AnalyticsTools,
+		t.KeyMetrics,
+		t.URL,
+		t.LandingPage,
+	}
+	if numFields <= 0 || numFields >= len(full) {
+		return full
+	}
+	return full[:numFields]
+}
+func (t *ThisApp) ScanDest(numFields int) []any {
+	if numFields <= 0 {
+		numFields = 0
+	}
+	return append([]any{&t.ID}, t.NewApp.ScanDest(numFields)...)
+}
+
+// Values returns a slice of ThisApp field values for use in database updates.
+func (t ThisApp) Values(numFields int) []any {
+	if numFields <= 0 {
+		numFields = 0
+	}
+	return append([]any{t.ID}, t.NewApp.Values(numFields)...)
+}
+
+// ...existing code...

@@ -1,6 +1,7 @@
-package dbrepo
+package dbrepo_test
 
 import (
+	"authserver-backend/internal/dbrepo"
 	"authserver-backend/internal/models"
 	"errors"
 	"regexp"
@@ -9,13 +10,24 @@ import (
 	"github.com/DATA-DOG/go-sqlmock"
 )
 
+const mockedfields = `
+		name,
+		release,
+		path,
+		init,
+		web,
+		title,
+		created,
+		updated
+	`
+
 // Helper function to set up a mock database and return a PostgresDBRepo instance
-func setupMockDB(t *testing.T) (*PostgresDBRepo, sqlmock.Sqlmock, func()) {
+func setupMockDB(t *testing.T) (*dbrepo.PostgresDBRepo, sqlmock.Sqlmock, func()) {
 	db, mock, err := sqlmock.New()
 	if err != nil {
 		t.Fatalf("failed to open sqlmock database: %s", err)
 	}
-	repo := &PostgresDBRepo{DB: db}
+	repo := &dbrepo.PostgresDBRepo{DB: db}
 	return repo, mock, func() { db.Close() }
 }
 
@@ -33,9 +45,8 @@ func TestAllApps(t *testing.T) {
 	).AddRow(
 		2, "App2", "v2.0", "/app2", "./app2.sh", "http://app2.example.com", "Title2", 16000000, 16000000,
 	)
-
 	mock.ExpectQuery(regexp.QuoteMeta(`
-		select 
+		select
 			id,
 			name,
 			release,
@@ -51,7 +62,7 @@ func TestAllApps(t *testing.T) {
 			name
 	`)).WillReturnRows(rows)
 
-	apps, err := repo.AllApps()
+	apps, err := repo.AllApps(mockedfields)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,7 +83,7 @@ func TestThisApp(t *testing.T) {
 	)
 
 	mock.ExpectQuery(regexp.QuoteMeta(`
-	select 
+	select
 		id,
 		name,
 		release,
@@ -87,7 +98,7 @@ func TestThisApp(t *testing.T) {
 	where id = $1
 `)).WithArgs(1).WillReturnRows(row)
 
-	app, err := repo.ThisApp(1)
+	app, err := repo.ThisApp(1, mockedfields)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,7 +134,7 @@ func TestThisAppForEdit(t *testing.T) {
 	where id = $1
 `)).WithArgs(2).WillReturnRows(row)
 
-	app, err := repo.ThisAppForEdit(2)
+	app, err := repo.ThisAppForEdit(2, mockedfields)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -186,8 +197,8 @@ func TestGetUserByID(t *testing.T) {
 		now, 2, 2, "es", 2, now, now,
 	)
 
-	mock.ExpectQuery(regexp.QuoteMeta(`select id, username, password, code, active, last_login, last_session, blocked, 
-	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action, 
+	mock.ExpectQuery(regexp.QuoteMeta(`select id, username, password, code, active, last_login, last_session, blocked,
+	tries, last_try, email, profile_id, group_id, dbsauth_id, activation_time, last_action,
 	last_app, last_db, lan, company_id, created, updated from users where id =$1`)).
 		WithArgs(2).WillReturnRows(row)
 
@@ -215,32 +226,19 @@ func TestInsertApp(t *testing.T) {
 		Updated: 160000000,
 	}
 
-	mock.ExpectQuery(regexp.QuoteMeta(`
-	insert into apps( 
-		name,
-		release,
-		path,
-		init,
-		web,
-		title,
-		created, 
-		updated)
-	values (
-		$1, $2, $3, $4, $5, $6, $7, $8
-	)
-	returning id, 1 
-	`)).WithArgs(
-		&newApp.Name,
-		&newApp.Release,
-		&newApp.Path,
-		&newApp.Init,
-		&newApp.Web,
-		&newApp.Title,
-		&newApp.Created,
-		&newApp.Updated,
-	).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
+	mock.ExpectQuery(regexp.QuoteMeta(`insert into apps(`+mockedfields+`) values ($2,$3,$4,$5,$6,$7,$8,$9) returning id`)).
+		WithArgs(
+			&newApp.Name,
+			&newApp.Release,
+			&newApp.Path,
+			&newApp.Init,
+			&newApp.Web,
+			&newApp.Title,
+			&newApp.Created,
+			&newApp.Updated,
+		).WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow(3))
 
-	id, err := repo.InsertApp(newApp)
+	id, err := repo.InsertApp(newApp, mockedfields)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -268,9 +266,7 @@ func TestUpdateApp(t *testing.T) {
 		},
 	}
 
-	mock.ExpectExec(regexp.QuoteMeta(`update apps set name=$2, release=$3, path=$4, init=$5, web=$6, title=$7, 
-		created=$8, updated=$9
-		where id = $1`)).
+	mock.ExpectExec(regexp.QuoteMeta(`update apps set name = $2, release = $3, path = $4, init = $5, web = $6, title = $7, created = $8, updated = $9 where id = $1`)).
 		WithArgs(
 			app.ID,
 			app.Name,
@@ -284,7 +280,8 @@ func TestUpdateApp(t *testing.T) {
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
-	err := repo.UpdateApp(app)
+		// Call the UpdateApp method
+	err := repo.UpdateApp(app, mockedfields)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -310,7 +307,7 @@ func TestAllApps_QueryError(t *testing.T) {
 
 	mock.ExpectQuery("select(.|\\s)*from\\s+apps").WillReturnError(errors.New("query error"))
 
-	_, err := repo.AllApps()
+	_, err := repo.AllApps(mockedfields)
 	if err == nil {
 		t.Error("expected error, got nil")
 	}
@@ -329,7 +326,7 @@ func TestThisApp_ScanError(t *testing.T) {
 	mock.ExpectQuery("select(.|\\s)*from\\s+apps(.|\\s)*where id = \\$1").
 		WithArgs(1).WillReturnRows(row)
 
-	_, err := repo.ThisApp(1)
+	_, err := repo.ThisApp(1, mockedfields)
 	if err == nil {
 		t.Error("expected scan error, got nil")
 	}

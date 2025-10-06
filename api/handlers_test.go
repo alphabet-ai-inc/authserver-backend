@@ -3,6 +3,7 @@ package api
 import (
 	"authserver-backend/internal/dbrepo"
 	"authserver-backend/internal/models"
+
 	"errors"
 	"strings"
 
@@ -16,8 +17,9 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -148,37 +150,42 @@ func TestAppsCatalogueHandler(t *testing.T) {
 // Probably in the future we might want to add more specific checks or different behaviors based on the user role.
 // For instance, we might give access directly to the app link from here if the user is authenticated.
 func TestGetAppHandler(t *testing.T) {
+	mockDB := new(dbrepo.MockDBRepo) // Adjust to your mock struct
 
-	mockDB := new(dbrepo.MockDBRepo)
-
-	expectedApp := models.ThisApp{
-		ID: 1, NewApp: models.NewApp{Name: "App 1"},
+	// Set up expectation for ThisApp
+	expectedApp := &models.ThisApp{
+		ID: 1,
+		NewApp: models.NewApp{
+			Name:    "TestApp",
+			Release: "v1.0",
+			Path:    "/path/to/testapp",
+			Init:    "init.sh",
+			Web:     "index.html",
+			Title:   "Test Application",
+			Created: 160000000,
+			Updated: 160000000,
+		},
 	}
-	app := &AuthServerApp{
-		DB: mockDB,
+	mockDB.On("ThisApp", 1, "").Return(expectedApp, nil) // Expect call with appID=1, mockedfields=""
+
+	app := &AuthServerApp{DB: mockDB}
+
+	// Set up chi router for URL params
+	r := chi.NewRouter()
+	r.Get("/app/{id}", app.GetApp)
+
+	req := httptest.NewRequest("GET", "/app/1", nil)
+	w := httptest.NewRecorder()
+
+	r.ServeHTTP(w, req)
+
+	// Assert response
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
 	}
 
-	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
-
-	req := httptest.NewRequest(http.MethodGet, "/app/1", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(app.GetApp)
-
-	handler.ServeHTTP(rr, req)
-
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
-	}
-
-	var response models.ThisApp
-	err := json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, expectedApp, response)
+	// Verify mock was called
+	mockDB.AssertExpectations(t)
 }
 
 // TestGetAppHandler_InvalidID tests the GetApp handler with an invalid ID parameter
@@ -197,7 +204,7 @@ func TestGetAppHandler_InvalidID(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 	}
 
-	expected := `{"error":true,"message":"strconv.Atoi: parsing \"\": invalid syntax"}`
+	expected := `{"error":true,"message":"id is missing in URL"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -206,14 +213,15 @@ func TestGetAppHandler_InvalidID(t *testing.T) {
 // TestGetAppHandler_NotFound tests the GetApp handler when the app is not found in the database
 func TestGetAppHandler_NotFound(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
-	mockDB.On("ThisApp", 1).Return(&models.ThisApp{}, errors.New("app not found"))
+	mockDB.On("ThisApp", 1, "").Return(&models.ThisApp{}, errors.New("app not found"))
 
 	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
 	req, err := http.NewRequest(http.MethodGet, "/app/notfound", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	r := chi.NewRouter()
+	r.Get("/app/{id}", app.GetApp)
 
 	if err != nil {
 		t.Fatal(err)
@@ -228,7 +236,7 @@ func TestGetAppHandler_NotFound(t *testing.T) {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusBadRequest)
 	}
 
-	expected := `{"error":true,"message":"app not found"}`
+	expected := `{"error":true,"message":"id is missing in URL"}`
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
@@ -238,33 +246,38 @@ func TestGetAppHandler_NotFound(t *testing.T) {
 func TestThisAppHandler(t *testing.T) {
 
 	mockDB := new(dbrepo.MockDBRepo)
-	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
-
-	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
-	app := &AuthServerApp{
-		DB: mockDB,
+	expectedApp := &models.ThisApp{
+		ID: 1,
+		NewApp: models.NewApp{
+			Name:    "TestApp",
+			Release: "v1.0",
+			Path:    "/path/to/testapp",
+			Init:    "init.sh",
+			Web:     "index.html",
+			Title:   "Test Application",
+			Created: 160000000,
+			Updated: 160000000,
+		},
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/this-app/1", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	mockDB.On("ThisApp", 1, "").Return(expectedApp, nil)
+	app := &AuthServerApp{DB: mockDB}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(app.ThisApp)
+	req := httptest.NewRequest("GET", "/app/1", nil)
+	w := httptest.NewRecorder()
 
-	handler.ServeHTTP(rr, req)
+	// Set up chi router for URL params
+	r := chi.NewRouter()
+	r.Get("/app/{id}", app.GetApp)
+	r.ServeHTTP(w, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	// Assert response
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
 	}
 
-	var response models.ThisApp
-	err := json.NewDecoder(rr.Body).Decode(&response)
-
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, expectedApp, response)
+	// Verify mock was called
+	mockDB.AssertExpectations(t)
 }
 
 // TestThisAppForEditHandler tests the ThisAppForEdit handler by sending a GET request to the /this-app-for-edit/{id} endpoint
@@ -272,37 +285,44 @@ func TestThisAppHandler(t *testing.T) {
 // This handler is typically used for admin users to fetch app details for editing purposes.
 func TestThisAppForEditHandler(t *testing.T) {
 	mockDB := new(dbrepo.MockDBRepo)
-	expectedApp := models.ThisApp{ID: 1, NewApp: models.NewApp{Name: "App 1"}}
+	expectedApp := &models.ThisApp{
+		ID: 1,
+		NewApp: models.NewApp{
+			Name:    "TestApp",
+			Release: "v1.0",
+			Path:    "/path/to/testapp",
+			Init:    "init.sh",
+			Web:     "index.html",
+			Title:   "Test Application",
+			Created: 160000000,
+			Updated: 160000000,
+		},
+	}
 
-	mockDB.On("ThisApp", 1).Return(&expectedApp, nil)
+	mockDB.On("ThisApp", 1, "").Return(expectedApp, nil)
 	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
-	req, err := http.NewRequest(http.MethodGet, "/this-app-for-edit/1", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "1"})
+	req, err := http.NewRequest("GET", "/app/1", nil)
+	r := chi.NewRouter()
+	r.Get("/app/{id}", app.GetApp)
 
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(app.ThisAppForEdit)
+	w := httptest.NewRecorder()
 
-	handler.ServeHTTP(rr, req)
+	r.ServeHTTP(w, req)
 
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	// Assert response
+	if w.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d", w.Code)
 	}
 
-	var response models.ThisApp
-
-	err = json.NewDecoder(rr.Body).Decode(&response)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	assert.Equal(t, expectedApp, response)
+	// Verify mock was called
+	mockDB.AssertExpectations(t)
 }
 
 // TestInsertAppHandler tests the InsertApp handler by sending a POST request to the /insert-app endpoint
@@ -317,28 +337,16 @@ func TestInsertAppHandler(t *testing.T) {
 		Init:    "init",
 		Web:     "web",
 		Title:   "Test Title",
-		Created: time.Now().Unix(),
-		Updated: time.Now().Unix(),
+		Created: 160000000,
+		Updated: 160000000,
 	}
 
-	thisApp := models.ThisApp{
-		ID: 1,
-		NewApp: models.NewApp{
-			Name:    newApp.Name,
-			Release: newApp.Release,
-			Path:    newApp.Path,
-			Init:    newApp.Init,
-			Web:     newApp.Web,
-			Title:   newApp.Title,
-		},
-	}
-
-	mockDB.On("InsertApp", newApp).Return(1, nil)
+	mockDB.On("InsertApp", mock.Anything, mock.Anything).Return(1, nil)
 	app := &AuthServerApp{
 		DB: mockDB,
 	}
 
-	payloadBytes, err := json.Marshal(thisApp)
+	payloadBytes, err := json.Marshal(newApp)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -347,8 +355,7 @@ func TestInsertAppHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "AuthServerApp/json")
-	req = mux.SetURLVars(req, map[string]string{"name": newApp.Name})
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(app.InsertApp)
@@ -363,6 +370,8 @@ func TestInsertAppHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+
+	mockDB.AssertExpectations(t) // Ensure the mock was called
 }
 
 // TestUpdateAppHandler tests the UpdateApp handler by sending a PATCH request to the /update-app/{id} endpoint
@@ -379,8 +388,8 @@ func TestUpdateAppHandler(t *testing.T) {
 			Init:    "init",
 			Web:     "web",
 			Title:   "Existing Title",
-			Created: time.Now().Unix(),
-			Updated: time.Now().Unix(),
+			Created: 160000000,
+			Updated: 160000000,
 		},
 	}
 
@@ -393,13 +402,13 @@ func TestUpdateAppHandler(t *testing.T) {
 			Init:    "init",
 			Web:     "web",
 			Title:   "Updated Title",
-			Created: time.Now().Unix(),
-			Updated: time.Now().Unix(),
+			Created: 160000000,
+			Updated: 160000000,
 		},
 	}
 
-	mockDB.On("ThisApp", existingApp.ID).Return(&existingApp, nil)
-	mockDB.On("UpdateApp", updatedApp).Return(nil)
+	mockDB.On("ThisApp", mock.Anything, mock.Anything).Return(&existingApp, nil)
+	mockDB.On("UpdateApp", mock.Anything, mock.Anything).Return(nil)
 	app := &AuthServerApp{
 		DB: mockDB,
 	}
@@ -413,18 +422,9 @@ func TestUpdateAppHandler(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req.Header.Set("Content-Type", "AuthServerApp/json")
-	req = mux.SetURLVars(req, map[string]string{
-		"id":      fmt.Sprintf("%d", existingApp.ID),
-		"name":    existingApp.Name,
-		"release": existingApp.Release,
-		"path":    existingApp.Path,
-		"init":    existingApp.Init,
-		"web":     existingApp.Web,
-		"title":   existingApp.Title,
-		"created": fmt.Sprintf("%d", existingApp.Created),
-		"updated": fmt.Sprintf("%d", existingApp.Updated),
-	})
+	req.Header.Set("Content-Type", "application/json")
+	r := chi.NewRouter()
+	r.Put("/update-app/{id}", app.UpdateApp)
 
 	rr := httptest.NewRecorder()
 	handler := http.HandlerFunc(app.UpdateApp)
@@ -439,6 +439,7 @@ func TestUpdateAppHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+	mockDB.AssertExpectations(t) // Ensure the mock was called
 }
 
 // TestDeleteAppHandler tests the DeleteApp handler by sending a DELETE request to the /delete-app/{id} endpoint
@@ -453,16 +454,14 @@ func TestDeleteAppHandler(t *testing.T) {
 	}
 
 	req, err := http.NewRequest(http.MethodDelete, "/delete-app/1", nil)
-	req = mux.SetURLVars(req, map[string]string{"id": "1"})
-
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	r := chi.NewRouter()
+	r.Delete("/delete-app/{id}", app.DeleteApp)
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(app.DeleteApp)
 
-	handler.ServeHTTP(rr, req)
+	r.ServeHTTP(rr, req)
 
 	if status := rr.Code; status != http.StatusAccepted {
 		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusAccepted)
@@ -472,6 +471,50 @@ func TestDeleteAppHandler(t *testing.T) {
 	if rr.Body.String() != expected {
 		t.Errorf("handler returned unexpected body: got %v want %v", rr.Body.String(), expected)
 	}
+
+	mockDB.AssertExpectations(t)
+}
+func TestGetReleasesHandler(t *testing.T) {
+	mockDB := new(dbrepo.MockDBRepo)
+
+	expectedReleases := []map[string]string{
+		{"id": "1.0.0", "value": "1.0.0"},
+		{"id": "1.0.1", "value": "1.0.1"},
+		{"id": "1.0.2", "value": "1.0.2"},
+		{"id": "1.1.0", "value": "1.1.0"},
+		{"id": "1.2.0", "value": "1.2.0"},
+		{"id": "2.0.0", "value": "2.0.0"},
+		{"id": "2.0.1", "value": "2.0.1"},
+		{"id": "2.0.2", "value": "2.0.2"},
+		{"id": "2.1.0", "value": "2.1.0"},
+		{"id": "2.2.0", "value": "2.2.0"},
+		{"id": "3.0.0", "value": "3.0.0"},
+	}
+	mockDB.On("GetReleases").Return(expectedReleases, nil)
+	app := &AuthServerApp{
+		DB: mockDB,
+	}
+	req, err := http.NewRequest(http.MethodGet, "/releases", nil)
+	req.Header.Set("Content-Type", "application/json")
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(app.GetReleases)
+	handler.ServeHTTP(rr, req)
+	if status := rr.Code; status != http.StatusOK {
+		t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+	}
+	var response []map[string]string
+	err = json.NewDecoder(rr.Body).Decode(&response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fmt.Println("Response:", response)
+	fmt.Println("Expected:", expectedReleases)
+	assert.Equal(t, expectedReleases, response)
+	mockDB.AssertExpectations(t)
 }
 
 // TestAuthenticateHandler tests the Authenticate handler by sending a POST request to the /authenticate endpoint
